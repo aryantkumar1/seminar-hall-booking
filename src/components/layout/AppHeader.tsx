@@ -5,16 +5,17 @@ import Link from 'next/link';
 import { AppLogo } from '@/components/shared/AppLogo';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, LogOut, CalendarDays } from 'lucide-react';
+import { Menu, LogOut, CalendarDays, Home, PlusSquare, CalendarCheck } from 'lucide-react'; // Added Home, PlusSquare, CalendarCheck
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import React, { useState, useMemo } from 'react';
 import { format, isSameDay } from 'date-fns';
-import { useBookings, type Booking } from '@/context/BookingContext'; // Import useBookings
+import { useBookings, type Booking } from '@/context/BookingContext'; 
 
 interface NavLink {
   href: string;
   label: string;
+  icon?: React.ElementType; // Optional icon for links
 }
 
 interface AppHeaderProps {
@@ -22,8 +23,8 @@ interface AppHeaderProps {
 }
 
 function ScheduleCalendar() {
-  const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date()); // Default to today
-  const { bookings: allBookings } = useBookings(); // Use bookings from context
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date()); 
+  const { bookings: allBookings } = useBookings(); 
 
   const bookedDates = useMemo(() => allBookings.map(b => b.date), [allBookings]);
 
@@ -38,7 +39,7 @@ function ScheduleCalendar() {
         mode="single"
         selected={selectedDay}
         onSelect={setSelectedDay}
-        modifiers={{ booked: bookedDates.filter(date => allBookings.find(b => isSameDay(b.date, date) && b.status === 'Approved')) }} // Only mark approved bookings
+        modifiers={{ booked: bookedDates.filter(date => allBookings.find(b => isSameDay(b.date, date) && b.status === 'Approved')) }} 
         modifiersClassNames={{ booked: 'day-booked' }}
         className="rounded-md"
         initialFocus
@@ -71,13 +72,14 @@ export function AppHeader({ userRole }: AppHeaderProps) {
   let navLinks: NavLink[] = [];
   if (userRole === 'admin') {
     navLinks = [
-      { href: '/admin/dashboard', label: 'Dashboard' },
-      { href: '/admin/halls/create', label: 'Create Hall' },
+      { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
+      { href: '/admin/halls/create', label: 'Create Hall', icon: PlusSquare },
+      { href: '/admin/booking-requests', label: 'Booking Requests', icon: CalendarCheck },
     ];
   } else if (userRole === 'faculty') {
     navLinks = [
-      { href: '/faculty/halls', label: 'Halls' },
-      { href: '/faculty/my-bookings', label: 'My Bookings' },
+      { href: '/faculty/halls', label: 'Halls', icon: Home },
+      { href: '/faculty/my-bookings', label: 'My Bookings', icon: CalendarCheck },
     ];
   }
 
@@ -85,21 +87,26 @@ export function AppHeader({ userRole }: AppHeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <AppLogo />
-        <nav className="hidden md:flex items-center space-x-4 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-1 text-sm font-medium"> {/* Reduced space-x */}
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="transition-colors hover:text-primary"
-            >
-              {link.label}
+              passHref
+              legacyBehavior>
+              <Button variant="ghost" asChild className="transition-colors hover:text-primary px-3">
+                <a> {/* Added anchor for Button asChild */}
+                  {link.icon && <link.icon className="mr-1.5 h-4 w-4" />}
+                  {link.label}
+                </a>
+              </Button>
             </Link>
           ))}
 
           {userRole && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary">
+                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary px-3">
                   <CalendarDays className="mr-1.5 h-4 w-4" /> Schedule
                 </Button>
               </PopoverTrigger>
@@ -110,9 +117,11 @@ export function AppHeader({ userRole }: AppHeaderProps) {
           )}
 
           {userRole && (
-             <Link href="/" passHref>
-                <Button variant="ghost" size="sm">
-                  <LogOut className="mr-2 h-4 w-4" /> Logout
+             <Link href="/" passHref legacyBehavior>
+                <Button variant="ghost" size="sm" asChild className="px-3">
+                  <a> {/* Added anchor for Button asChild */}
+                    <LogOut className="mr-1.5 h-4 w-4" /> Logout
+                  </a>
                 </Button>
              </Link>
           )}
@@ -126,21 +135,26 @@ export function AppHeader({ userRole }: AppHeaderProps) {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <nav className="flex flex-col space-y-4 mt-8">
+              <nav className="flex flex-col space-y-2 mt-8"> {/* Reduced space-y */}
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="text-lg transition-colors hover:text-primary px-2 py-1 rounded-md"
-                  >
-                    {link.label}
+                    passHref
+                    legacyBehavior>
+                     <Button variant="ghost" asChild className="text-lg justify-start hover:text-primary px-2 py-3 rounded-md">
+                        <a> {/* Added anchor for Button asChild */}
+                         {link.icon && <link.icon className="mr-2 h-5 w-5" />}
+                         {link.label}
+                        </a>
+                     </Button>
                   </Link>
                 ))}
 
                 {userRole && (
                   <Popover>
                     <PopoverTrigger asChild>
-                       <Button variant="ghost" className="w-full justify-start text-lg hover:text-primary px-2 py-1 rounded-md">
+                       <Button variant="ghost" className="w-full justify-start text-lg hover:text-primary px-2 py-3 rounded-md">
                          <CalendarDays className="mr-2 h-5 w-5" /> Schedule
                        </Button>
                     </PopoverTrigger>
@@ -151,9 +165,11 @@ export function AppHeader({ userRole }: AppHeaderProps) {
                 )}
 
                 {userRole && (
-                  <Link href="/" passHref>
-                    <Button variant="outline" className="w-full mt-4">
-                      <LogOut className="mr-2 h-4 w-4" /> Logout
+                  <Link href="/" passHref legacyBehavior>
+                    <Button variant="outline" asChild className="w-full mt-4">
+                      <a> {/* Added anchor for Button asChild */}
+                        <LogOut className="mr-2 h-4 w-4" /> Logout
+                      </a>
                     </Button>
                   </Link>
                 )}
