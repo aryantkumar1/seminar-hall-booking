@@ -1,16 +1,17 @@
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { PageTitle } from '@/components/shared/PageTitle';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { PlusCircle, Edit3, Trash2, CheckCircle2, XCircle, Settings2, CalendarCheck2 } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, CheckCircle2, XCircle, Settings2, CalendarCheck2, Users } from 'lucide-react';
 
 // Mock data
 const mockHalls = [
-  { id: '1', name: 'Grand Auditorium', capacity: 200, bookings: 5 },
-  { id: '2', name: 'Innovation Hub', capacity: 50, bookings: 12 },
+  { id: '1', name: 'Grand Auditorium', capacity: 200, bookings: 5, imageUrl: 'https://placehold.co/600x400.png', imageHint: 'large auditorium stage' },
+  { id: '2', name: 'Innovation Hub', capacity: 50, bookings: 12, imageUrl: 'https://placehold.co/600x400.png', imageHint: 'modern hub computers' },
+  { id: '3', name: 'Lecture Hall A', capacity: 100, bookings: 8, imageUrl: 'https://placehold.co/600x400.png', imageHint: 'lecture hall seats' },
 ];
 
 const mockBookingRequests = [
@@ -23,52 +24,64 @@ export default function AdminDashboardPage() {
     <div>
       <PageTitle>Admin Dashboard</PageTitle>
 
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2"><Settings2 className="text-primary"/>Manage Halls</CardTitle>
-            <CardDescription>Create, view, edit, or delete seminar halls.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/halls/create" passHref>
-              <Button className="w-full mb-4 bg-primary hover:bg-primary/90 text-primary-foreground">
-                <PlusCircle className="mr-2 h-4 w-4" /> Create New Hall
-              </Button>
-            </Link>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Capacity</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+      <div className="grid lg:grid-cols-3 gap-6 mb-8">
+        {/* Manage Halls Section - taking 2 cols on lg screens */}
+        <div className="lg:col-span-2">
+          <Card className="shadow-lg h-full">
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center gap-2"><Settings2 className="text-primary"/>Manage Halls</CardTitle>
+              <CardDescription>Create, view, edit, or delete seminar halls.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/halls/create" passHref>
+                <Button className="w-full mb-6 bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <PlusCircle className="mr-2 h-4 w-4" /> Create New Hall
+                </Button>
+              </Link>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {mockHalls.map((hall) => (
-                  <TableRow key={hall.id}>
-                    <TableCell>{hall.name}</TableCell>
-                    <TableCell>{hall.capacity}</TableCell>
-                    <TableCell className="text-right space-x-2">
+                  <Card key={hall.id} className="shadow-md flex flex-col">
+                    <div className="relative w-full h-40">
+                      <Image 
+                        src={hall.imageUrl} 
+                        alt={hall.name} 
+                        layout="fill" 
+                        objectFit="cover" 
+                        className="rounded-t-lg"
+                        data-ai-hint={hall.imageHint} 
+                      />
+                    </div>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-headline">{hall.name}</CardTitle>
+                      <CardDescription className="flex items-center text-sm">
+                        <Users className="w-4 h-4 mr-1 text-muted-foreground" /> Capacity: {hall.capacity}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-grow pb-2">
+                      <p className="text-xs text-muted-foreground">Current Bookings: {hall.bookings}</p>
+                    </CardContent>
+                    <CardFooter className="flex justify-end space-x-2 pt-2 pb-4 px-4">
                       <Link href={`/admin/halls/${hall.id}/edit`} passHref>
-                        <Button variant="outline" size="icon" className="hover:text-primary">
-                          <Edit3 className="h-4 w-4" />
+                        <Button variant="outline" size="sm" className="hover:text-primary hover:border-primary">
+                          <Edit3 className="mr-1.5 h-3.5 w-3.5" /> Edit
                         </Button>
                       </Link>
-                      <Button variant="outline" size="icon" className="hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="outline" size="sm" className="hover:text-destructive hover:border-destructive">
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </CardFooter>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="shadow-lg">
+        {/* Booking Requests Section - taking 1 col on lg screens */}
+        <Card className="shadow-lg h-full">
           <CardHeader>
             <CardTitle className="font-headline flex items-center gap-2"><CalendarCheck2 className="text-accent"/>Booking Requests</CardTitle>
-            <CardDescription>Approve or reject pending booking requests from faculty.</CardDescription>
+            <CardDescription>Approve or reject pending booking requests.</CardDescription>
           </CardHeader>
           <CardContent>
             {mockBookingRequests.length > 0 ? (
@@ -77,16 +90,16 @@ export default function AdminDashboardPage() {
                   <TableRow>
                     <TableHead>Hall</TableHead>
                     <TableHead>Faculty</TableHead>
-                    <TableHead>Date & Time</TableHead>
+                    {/* <TableHead>Date & Time</TableHead> */}
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {mockBookingRequests.map((req) => (
                     <TableRow key={req.id}>
-                      <TableCell>{req.hallName}</TableCell>
+                      <TableCell className="font-medium">{req.hallName}</TableCell>
                       <TableCell>{req.facultyName}</TableCell>
-                      <TableCell>{req.date} <br/> <span className="text-xs text-muted-foreground">{req.startTime} - {req.endTime}</span></TableCell>
+                      {/* <TableCell>{req.date} <br/> <span className="text-xs text-muted-foreground">{req.startTime} - {req.endTime}</span></TableCell> */}
                       <TableCell className="text-right space-x-1">
                         <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700 hover:bg-green-100">
                           <CheckCircle2 className="h-5 w-5" />
