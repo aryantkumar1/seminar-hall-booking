@@ -64,14 +64,15 @@ router.get('/health', async (req: Request, res: Response) => {
 })
 
 // Readiness probe - checks if app is ready to serve traffic
-router.get('/ready', async (req: Request, res: Response) => {
+router.get('/ready', async (req: Request, res: Response): Promise<void> => {
   try {
     // Check if database is ready
     if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({
+      res.status(503).json({
         status: 'NOT_READY',
         message: 'Database not connected'
       })
+      return
     }
 
     res.status(200).json({

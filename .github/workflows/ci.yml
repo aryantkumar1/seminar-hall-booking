@@ -99,11 +99,14 @@ jobs:
       run: cd backend && npm ci
 
     - name: Build frontend
-      run: npm run build
       env:
-        JWT_SECRET: test-secret-key
+        MONGODB_URI: mongodb://localhost:27017/test
+        MONGODB_DB: seminar-hall-booking-test
+        JWT_SECRET: test-secret-key-for-ci
+        JWT_EXPIRES_IN: 7d
         NEXTAUTH_SECRET: test-nextauth-secret
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+      run: npm run build
 
     - name: Build backend
       run: cd backend && npm run build

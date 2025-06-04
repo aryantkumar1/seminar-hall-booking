@@ -27,6 +27,11 @@ COPY . .
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
+ENV MONGODB_URI=mongodb://localhost:27017/seminar-hall-booking
+ENV MONGODB_DB=seminar-hall-booking
+ENV JWT_SECRET=your-secret-key-here
+ENV JWT_EXPIRES_IN=7d
+ENV NEXTAUTH_SECRET=your-nextauth-secret-here
 
 # Build the application
 RUN npm run build
