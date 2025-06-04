@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import React, { useState, useMemo } from 'react';
 import { format, isSameDay } from 'date-fns';
+import { useBookings, type Booking } from '@/context/BookingContext'; // Import useBookings
 
 interface NavLink {
   href: string;
@@ -20,39 +21,16 @@ interface AppHeaderProps {
   userRole?: 'admin' | 'faculty';
 }
 
-interface MockBooking {
-  id: string;
-  hallName: string;
-  date: Date;
-  purpose: string;
-  startTime: string;
-  endTime: string;
-}
-
-const today = new Date();
-const currentYear = today.getFullYear();
-const currentMonth = today.getMonth();
-
-// Mock booking data - in a real app, this would come from a context or API
-const mockBookings: MockBooking[] = [
-  { id: 'b1', hallName: 'Grand Auditorium', date: new Date(currentYear, currentMonth, 15), purpose: 'AI Conference Day 1', startTime: '09:00', endTime: '17:00' },
-  { id: 'b2', hallName: 'Innovation Hub', date: new Date(currentYear, currentMonth, 15), purpose: 'Startup Pitch Event', startTime: '14:00', endTime: '16:00' },
-  { id: 'b3', hallName: 'Lecture Hall A', date: new Date(currentYear, currentMonth, 22), purpose: 'Guest Lecture on Quantum Physics', startTime: '10:00', endTime: '12:00' },
-  { id: 'b4', hallName: 'Grand Auditorium', date: new Date(currentYear, currentMonth, 22), purpose: 'AI Conference Day 2', startTime: '09:00', endTime: '17:00' },
-  { id: 'b5', hallName: 'Conference Room B', date: new Date(currentYear, currentMonth + 1, 5), purpose: 'Team Planning Session', startTime: '11:00', endTime: '12:30' },
-  { id: 'b6', hallName: 'Innovation Hub', date: new Date(currentYear, currentMonth, today.getDate()), purpose: 'Urgent Tech Meetup', startTime: '16:00', endTime: '18:00' },
-];
-
-
 function ScheduleCalendar() {
-  const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined);
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date()); // Default to today
+  const { bookings: allBookings } = useBookings(); // Use bookings from context
 
-  const bookedDates = useMemo(() => mockBookings.map(b => b.date), []);
+  const bookedDates = useMemo(() => allBookings.map(b => b.date), [allBookings]);
 
   const bookingsForSelectedDay = useMemo(() => {
     if (!selectedDay) return [];
-    return mockBookings.filter(booking => isSameDay(booking.date, selectedDay));
-  }, [selectedDay]);
+    return allBookings.filter(booking => isSameDay(booking.date, selectedDay) && booking.status === 'Approved');
+  }, [selectedDay, allBookings]);
 
   return (
     <>
@@ -60,14 +38,15 @@ function ScheduleCalendar() {
         mode="single"
         selected={selectedDay}
         onSelect={setSelectedDay}
-        modifiers={{ booked: bookedDates }}
+        modifiers={{ booked: bookedDates.filter(date => allBookings.find(b => isSameDay(b.date, date) && b.status === 'Approved')) }} // Only mark approved bookings
         modifiersClassNames={{ booked: 'day-booked' }}
         className="rounded-md"
+        initialFocus
       />
       {selectedDay && (
-        <div className="mt-4 pt-4 border-t">
+        <div className="mt-4 pt-4 border-t max-h-60 overflow-y-auto">
           <h4 className="text-sm font-semibold mb-2 text-foreground">
-            Bookings for {format(selectedDay, "PPP")}
+            Approved Bookings for {format(selectedDay, "PPP")}
           </h4>
           {bookingsForSelectedDay.length > 0 ? (
             <ul className="space-y-2 text-xs text-muted-foreground">
@@ -75,12 +54,12 @@ function ScheduleCalendar() {
                 <li key={booking.id} className="p-2 bg-secondary/50 rounded-md">
                   <p className="font-medium text-foreground">{booking.hallName}</p>
                   <p>{booking.purpose}</p>
-                  <p>{booking.startTime} - {booking.endTime}</p>
+                  <p>{booking.startTime} - {booking.endTime} (by {booking.facultyName})</p>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-muted-foreground">No bookings for this day.</p>
+            <p className="text-xs text-muted-foreground">No approved bookings for this day.</p>
           )}
         </div>
       )}
@@ -165,7 +144,7 @@ export function AppHeader({ userRole }: AppHeaderProps) {
                          <CalendarDays className="mr-2 h-5 w-5" /> Schedule
                        </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-4 mt-1 sm:min-w-[320px] max-h-[80vh] overflow-y-auto shadow-xl rounded-lg ml-[-10px] sm:ml-0"> {/* Adjust margin for better mobile placement */}
+                    <PopoverContent className="w-auto p-4 mt-1 sm:min-w-[320px] max-h-[calc(80vh-2rem)] overflow-y-auto shadow-xl rounded-lg ml-[-10px] sm:ml-0">
                       <ScheduleCalendar />
                     </PopoverContent>
                   </Popover>

@@ -21,8 +21,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useBookings, type BookingFormData } from '@/context/BookingContext';
 
 const bookingFormSchema = z.object({
   date: z.date({
@@ -41,23 +41,34 @@ const bookingFormSchema = z.object({
   }),
 }).refine(data => {
   if (data.startTime && data.endTime) {
-    return data.endTime > data.startTime;
+    // Basic time comparison, does not handle crossing midnight.
+    // Assumes times are on the same day.
+    const [startH, startM] = data.startTime.split(':').map(Number);
+    const [endH, endM] = data.endTime.split(':').map(Number);
+    if (endH < startH) return false;
+    if (endH === startH && endM <= startM) return false;
+    return true;
   }
   return true;
 }, {
   message: "End time must be after start time.",
-  path: ["endTime"], // Path to show error on endTime field
+  path: ["endTime"], 
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
 
 interface BookingFormProps {
+  hallId: string;
   hallName: string;
 }
 
-export function BookingForm({ hallName }: BookingFormProps) {
-  const { toast } = useToast();
+// Mock current faculty details - in a real app, this would come from auth
+const MOCK_CURRENT_FACULTY_ID = "faculty007";
+const MOCK_CURRENT_FACULTY_NAME = "Dr. Current User";
+
+export function BookingForm({ hallId, hallName }: BookingFormProps) {
   const router = useRouter();
+  const { addBooking } = useBookings();
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
@@ -65,18 +76,21 @@ export function BookingForm({ hallName }: BookingFormProps) {
       purpose: "",
       startTime: "",
       endTime: "",
+      date: new Date(new Date().setDate(new Date().getDate() + 1)) // Default to tomorrow
     }
   });
 
   function onSubmit(data: BookingFormValues) {
-    console.log(data);
-    toast({
-      title: "Booking Request Submitted!",
-      description: `Your request for ${hallName} on ${format(data.date, "PPP")} from ${data.startTime} to ${data.endTime} has been sent for approval.`,
-      className: "bg-primary text-primary-foreground",
-    });
-    // Simulate redirect
-    router.push("/faculty/halls");
+    const bookingDataForContext: BookingFormData = {
+        hallId,
+        hallName,
+        date: data.date,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        purpose: data.purpose,
+    };
+    addBooking(bookingDataForContext, MOCK_CURRENT_FACULTY_ID, MOCK_CURRENT_FACULTY_NAME);
+    router.push("/faculty/my-bookings"); // Redirect to my bookings page
   }
 
   return (
@@ -113,7 +127,7 @@ export function BookingForm({ hallName }: BookingFormProps) {
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) =>
-                      date < new Date(new Date().setHours(0,0,0,0)) // Disable past dates
+                      date < new Date(new Date().setHours(0,0,0,0)) 
                     }
                     initialFocus
                   />
@@ -161,8 +175,8 @@ export function BookingForm({ hallName }: BookingFormProps) {
             )}
           />
         </div>
-         <FormDescription className="col-span-2">
-            Choose the start and end times for your booking.
+         <FormDescription className="col-span-2 -mt-4 text-xs">
+            Choose the start and end times for your booking (HH:MM format).
         </FormDescription>
 
 

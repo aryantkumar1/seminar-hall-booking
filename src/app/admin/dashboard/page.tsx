@@ -21,16 +21,18 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-
-// Mock data for booking requests (can be moved to context if needed later)
-const mockBookingRequests = [
-  { id: 'b1', hallName: 'Grand Auditorium', facultyName: 'Dr. Smith', date: '2024-09-15', startTime: '09:00', endTime: '11:00', status: 'pending' },
-  { id: 'b2', hallName: 'Innovation Hub', facultyName: 'Prof. Jones', date: '2024-09-16', startTime: '14:00', endTime: '16:00', status: 'pending' },
-];
+import { useBookings, type Booking } from '@/context/BookingContext'; // Import useBookings
+import { useMemo } from 'react';
+import { format } from 'date-fns';
 
 export default function AdminDashboardPage() {
   const { halls, deleteHall } = useHalls();
+  const { bookings, updateBookingStatus } = useBookings(); // Use bookings from context
   const { toast } = useToast();
+
+  const pendingBookingRequests = useMemo(() => {
+    return bookings.filter(b => b.status === 'Pending').sort((a,b) => a.date.getTime() - b.date.getTime());
+  }, [bookings]);
 
   const handleDeleteHall = (hallId: string, hallName: string) => {
     deleteHall(hallId);
@@ -39,6 +41,14 @@ export default function AdminDashboardPage() {
       description: `${hallName} has been successfully deleted.`,
       variant: "destructive",
     });
+  };
+
+  const handleApproveBooking = (bookingId: string) => {
+    updateBookingStatus(bookingId, 'Approved');
+  };
+
+  const handleRejectBooking = (bookingId: string) => {
+    updateBookingStatus(bookingId, 'Rejected');
   };
 
   return (
@@ -79,7 +89,7 @@ export default function AdminDashboardPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="flex-grow pb-2">
-                        {/* Removed bookings count as it's not in the core Hall type */}
+                        {/* Future: Show number of upcoming approved bookings for this hall */}
                       </CardContent>
                       <CardFooter className="flex justify-end space-x-2 pt-2 pb-4 px-4">
                         <Link href={`/admin/halls/${hall.id}/edit`} passHref>
@@ -125,32 +135,37 @@ export default function AdminDashboardPage() {
             <CardDescription>Approve or reject pending booking requests.</CardDescription>
           </CardHeader>
           <CardContent>
-            {mockBookingRequests.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Hall</TableHead>
-                    <TableHead>Faculty</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockBookingRequests.map((req) => (
-                    <TableRow key={req.id}>
-                      <TableCell className="font-medium">{req.hallName}</TableCell>
-                      <TableCell>{req.facultyName}</TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700 hover:bg-green-100">
-                          <CheckCircle2 className="h-5 w-5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-100">
-                          <XCircle className="h-5 w-5" />
-                        </Button>
-                      </TableCell>
+            {pendingBookingRequests.length > 0 ? (
+              <div className="max-h-[600px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Details</TableHead> {/* Combined Hall & Faculty & Date */}
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingBookingRequests.map((req: Booking) => (
+                      <TableRow key={req.id}>
+                        <TableCell>
+                          <div className="font-medium">{req.hallName}</div>
+                          <div className="text-xs text-muted-foreground">By: {req.facultyName}</div>
+                          <div className="text-xs text-muted-foreground">On: {format(req.date, 'PP')} ({req.startTime} - {req.endTime})</div>
+                           <div className="text-xs text-muted-foreground mt-1">Purpose: {req.purpose}</div>
+                        </TableCell>
+                        <TableCell className="text-right space-x-1">
+                          <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700 hover:bg-green-100" onClick={() => handleApproveBooking(req.id)}>
+                            <CheckCircle2 className="h-5 w-5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-100" onClick={() => handleRejectBooking(req.id)}>
+                            <XCircle className="h-5 w-5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <p className="text-muted-foreground text-center py-4">No pending booking requests.</p>
             )}

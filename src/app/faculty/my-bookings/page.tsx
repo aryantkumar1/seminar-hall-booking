@@ -7,17 +7,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { CalendarClock, Info } from 'lucide-react';
 import { format } from 'date-fns';
+import { useBookings, type Booking } from '@/context/BookingContext';
+import { useMemo } from 'react';
 
-// Mock data for faculty's bookings - in a real app, this would be fetched
-const facultyBookings = [
-  { id: 'fb1', hallName: 'Grand Auditorium', date: new Date(2024, 8, 20), startTime: '10:00', endTime: '12:00', purpose: 'Department Meeting', status: 'Approved' },
-  { id: 'fb2', hallName: 'Innovation Hub', date: new Date(2024, 8, 25), startTime: '14:00', endTime: '15:30', purpose: 'Guest Lecture Series Prep', status: 'Pending' },
-  { id: 'fb3', hallName: 'Lecture Hall A', date: new Date(2024, 9, 5), startTime: '09:00', endTime: '11:00', purpose: 'Student Workshop on AI', status: 'Approved' },
-  { id: 'fb4', hallName: 'Grand Auditorium', date: new Date(2024, 9, 10), startTime: '13:00', endTime: '16:00', purpose: 'Annual Research Symposium', status: 'Rejected' },
-  { id: 'fb5', hallName: 'Conference Room B', date: new Date(2024, 9, 15), startTime: '11:00', endTime: '12:30', purpose: 'PhD Candidacy Defense', status: 'Pending' },
-];
+// Mock current faculty ID - in a real app, this would come from auth
+const MOCK_CURRENT_FACULTY_ID = "faculty007";
 
 export default function MyBookingsPage() {
+  const { bookings } = useBookings();
+
+  const facultyBookings = useMemo(() => {
+    // For now, let's assume we want to show bookings for the MOCK_CURRENT_FACULTY_ID
+    // or show all if we don't have a specific user context yet.
+    // To see bookings made by the form, we filter by MOCK_CURRENT_FACULTY_ID.
+    // To see all initial bookings, you can remove the filter.
+    return bookings.filter(b => b.facultyId === MOCK_CURRENT_FACULTY_ID).sort((a,b) => b.date.getTime() - a.date.getTime());
+  }, [bookings]);
+
   return (
     <div>
       <PageTitle>My Bookings</PageTitle>
@@ -44,7 +50,7 @@ export default function MyBookingsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {facultyBookings.map((booking) => (
+                {facultyBookings.map((booking: Booking) => (
                   <TableRow key={booking.id}>
                     <TableCell className="font-medium">{booking.hallName}</TableCell>
                     <TableCell>{format(booking.date, 'PPP')}</TableCell>
@@ -57,6 +63,11 @@ export default function MyBookingsPage() {
                           booking.status === 'Pending' ? 'secondary' :
                           booking.status === 'Rejected' ? 'destructive' :
                           'outline' 
+                        }
+                        className={
+                          booking.status === 'Approved' ? 'bg-green-600 hover:bg-green-700 text-white' :
+                          booking.status === 'Pending' ? 'bg-yellow-500 hover:bg-yellow-600 text-black' :
+                          booking.status === 'Rejected' ? 'bg-red-600 hover:bg-red-700 text-white' : ''
                         }
                       >
                         {booking.status}
