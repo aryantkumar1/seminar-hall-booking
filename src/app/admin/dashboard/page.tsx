@@ -73,13 +73,13 @@ export default function AdminDashboardPage() {
                   {halls.map((hall) => (
                     <Card key={hall.id} className="shadow-md flex flex-col">
                       <div className="relative w-full h-40">
-                        <Image 
-                          src={hall.imageUrl || 'https://placehold.co/600x400.png'} 
-                          alt={hall.name} 
-                          layout="fill" 
-                          objectFit="cover" 
+                        <Image
+                          src={hall.imageUrl || 'https://placehold.co/600x400.png'}
+                          alt={hall.name}
+                          layout="fill"
+                          objectFit="cover"
                           className="rounded-t-lg"
-                          data-ai-hint={hall.imageHint} 
+                          data-ai-hint={hall.imageHint}
                         />
                       </div>
                       <CardHeader className="pb-2">
@@ -139,29 +139,23 @@ export default function AdminDashboardPage() {
               <div className="max-h-[600px] overflow-y-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Details</TableHead> {/* Combined Hall & Faculty & Date */}
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
+                    <TableRow><TableHead>Details</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
                   </TableHeader>
                   <TableBody>
                     {pendingBookingRequests.map((req: Booking) => (
-                      <TableRow key={req.id}>
-                        <TableCell>
+                      <TableRow key={req.id}><TableCell>
                           <div className="font-medium">{req.hallName}</div>
                           <div className="text-xs text-muted-foreground">By: {req.facultyName}</div>
                           <div className="text-xs text-muted-foreground">On: {format(req.date, 'PP')} ({req.startTime} - {req.endTime})</div>
                            <div className="text-xs text-muted-foreground mt-1">Purpose: {req.purpose}</div>
-                        </TableCell>
-                        <TableCell className="text-right space-x-1">
+                        </TableCell><TableCell className="text-right space-x-1">
                           <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700 hover:bg-green-100" onClick={() => handleApproveBooking(req.id)}>
                             <CheckCircle2 className="h-5 w-5" />
                           </Button>
                           <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700 hover:bg-red-100" onClick={() => handleRejectBooking(req.id)}>
                             <XCircle className="h-5 w-5" />
                           </Button>
-                        </TableCell>
-                      </TableRow>
+                        </TableCell></TableRow>
                     ))}
                   </TableBody>
                 </Table>
