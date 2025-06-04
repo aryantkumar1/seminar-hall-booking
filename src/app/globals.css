@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -86,4 +87,43 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom style for booked days in the calendar */
+.day-booked .rdp-button_reset.rdp-button {
+  position: relative;
+  /* You can add other base styles for booked day numbers if needed, e.g., font-weight */
+}
+
+.day-booked .rdp-button_reset.rdp-button::after {
+  content: '';
+  position: absolute;
+  bottom: 4px; /* Adjust vertical position of the dot */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px; /* Size of the dot */
+  height: 5px; /* Size of the dot */
+  border-radius: 50%;
+  background-color: hsl(var(--accent)); /* Accent color for the dot */
+}
+
+/* Ensure dot is visible and contrasts if the booked day is also selected */
+.rdp-day_selected.day-booked .rdp-button_reset.rdp-button::after,
+.rdp-day_selected:focus.day-booked .rdp-button_reset.rdp-button::after {
+  background-color: hsl(var(--primary-foreground)); /* Contrast color for dot on selected day */
+}
+
+/* Ensure dot is visible and contrasts if the booked day is also today */
+.rdp-day_today.day-booked .rdp-button_reset.rdp-button::after {
+   background-color: hsl(var(--accent-foreground)); /* Contrast color for dot on today */
+}
+
+/* If booked day is today AND selected */
+.rdp-day_today.rdp-day_selected.day-booked .rdp-button_reset.rdp-button::after {
+  background-color: hsl(var(--accent-foreground)); /* Or another color for this specific combo */
+}
+
+/* Style for popover content within the sheet on mobile to ensure it's above the sheet*/
+[class~="md:hidden"] .rdp-popover {
+  z-index: 60; /* Higher than sheet's z-index which is 50 for content */
 }
