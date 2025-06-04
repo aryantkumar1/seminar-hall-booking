@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { PlusCircle } from "lucide-react";
+import { useHalls, type HallFormData } from '@/context/HallContext';
 
 const hallFormSchema = z.object({
   name: z.string().min(3, { message: "Hall name must be at least 3 characters." }),
@@ -28,10 +30,12 @@ const hallFormSchema = z.object({
     message: "You have to select at least one equipment item.",
   }),
   imageUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
+  imageHint: z.string().min(2, {message: "Image hint must be at least 2 characters."}).max(50, {message: "Image hint must be 50 characters or less."}).optional().or(z.literal('')),
 });
 
 type HallFormValues = z.infer<typeof hallFormSchema>;
 
+// This list should ideally be sourced from a shared constants file
 const availableEquipment = [
   { id: "projector", label: "Projector" },
   { id: "whiteboard", label: "Whiteboard" },
@@ -43,6 +47,7 @@ const availableEquipment = [
 export default function CreateHallPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const { addHall } = useHalls();
 
   const form = useForm<HallFormValues>({
     resolver: zodResolver(hallFormSchema),
@@ -51,11 +56,19 @@ export default function CreateHallPage() {
       capacity: 50,
       equipment: [],
       imageUrl: "",
+      imageHint: "",
     },
   });
 
   function onSubmit(data: HallFormValues) {
-    console.log(data);
+    const hallDataForContext: HallFormData = {
+        name: data.name,
+        capacity: data.capacity,
+        equipment: data.equipment, // these are IDs
+        imageUrl: data.imageUrl,
+        imageHint: data.imageHint,
+    };
+    addHall(hallDataForContext);
     toast({
       title: "Hall Created!",
       description: `${data.name} has been successfully created.`,
@@ -155,11 +168,25 @@ export default function CreateHallPage() {
                 name="imageUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Image URL (Optional)</FormLabel>
+                    <FormLabel>Image URL</FormLabel>
                     <FormControl>
                       <Input placeholder="https://placehold.co/600x400.png" {...field} />
                     </FormControl>
-                    <FormDescription>Paste a URL for the hall's image.</FormDescription>
+                    <FormDescription>Paste a URL for the hall's image. (e.g. https://placehold.co/600x400.png)</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="imageHint"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Image Hint (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., modern auditorium" {...field} />
+                    </FormControl>
+                    <FormDescription>One or two keywords for AI image search (e.g., "lecture hall", "stage view").</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

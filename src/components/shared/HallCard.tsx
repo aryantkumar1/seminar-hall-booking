@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +22,8 @@ const equipmentIcons: { [key: string]: React.ElementType } = {
   Projector: Projector,
   Whiteboard: Tv, // Using Tv as placeholder for Presentation/Whiteboard
   'Sound System': Mic,
+  'Microphone': Mic, // Added Microphone
+  'Video Conferencing': Tv, // Added Video Conferencing
 };
 
 export function HallCard({ hall }: HallCardProps) {
@@ -46,7 +49,7 @@ export function HallCard({ hall }: HallCardProps) {
         <h4 className="font-semibold text-sm mb-2">Equipment:</h4>
         <div className="flex flex-wrap gap-2">
           {hall.equipment.map((item) => {
-            const IconComponent = equipmentIcons[item] || Tv;
+            const IconComponent = equipmentIcons[item] || Tv; // Fallback to Tv if icon not found
             return (
               <span key={item} className="flex items-center text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full">
                 <IconComponent className="w-3 h-3 mr-1" />

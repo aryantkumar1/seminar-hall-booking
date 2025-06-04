@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,9 +19,10 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter, useParams } from "next/navigation"; // useParams can be used directly
+import { useEffect, useState } from "react";
 import { Edit3 } from "lucide-react";
+import { useHalls, type HallFormData } from '@/context/HallContext';
 
 const hallFormSchema = z.object({
   name: z.string().min(3, { message: "Hall name must be at least 3 characters." }),
@@ -29,10 +31,12 @@ const hallFormSchema = z.object({
     message: "You have to select at least one equipment item.",
   }),
   imageUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
+  imageHint: z.string().min(2, {message: "Image hint must be at least 2 characters."}).max(50, {message: "Image hint must be 50 characters or less."}).optional().or(z.literal('')),
 });
 
 type HallFormValues = z.infer<typeof hallFormSchema>;
 
+// This list should ideally be sourced from a shared constants file
 const availableEquipment = [
   { id: "projector", label: "Projector" },
   { id: "whiteboard", label: "Whiteboard" },
@@ -40,43 +44,60 @@ const availableEquipment = [
   { id: "microphone", label: "Microphone" },
   { id: "video_conference", label: "Video Conferencing" },
 ];
+const equipmentLabelToIdMap = new Map(availableEquipment.map(item => [item.label, item.id]));
 
-// Mock hall data for editing
-const mockHallData: HallFormValues & { id: string } = {
-  id: '1',
-  name: "Grand Auditorium",
-  capacity: 200,
-  equipment: ["projector", "sound_system"],
-  imageUrl: "https://placehold.co/600x400.png",
-};
 
-export default function EditHallPage({ params }: { params: { hallId: string } }) {
+export default function EditHallPage() {
   const { toast } = useToast();
   const router = useRouter();
-  // In a real app, fetch hall data based on params.hallId
-  const hallDataToEdit = mockHallData; // Assuming mockHallData matches params.hallId or is fetched
+  const params = useParams();
+  const hallId = params.hallId as string;
+  const { getHallById, updateHall } = useHalls();
+  const [hallDataToEdit, setHallDataToEdit] = useState<HallFormValues | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const form = useForm<HallFormValues>({
     resolver: zodResolver(hallFormSchema),
-    defaultValues: hallDataToEdit || { // Fallback if data isn't found, though UI should handle this
+    defaultValues: {
       name: "",
       capacity: 50,
       equipment: [],
       imageUrl: "",
+      imageHint: "",
     },
   });
   
   useEffect(() => {
-    // Reset form with fetched data if params.hallId changes or on initial load
-    // This is more relevant if hallDataToEdit was fetched asynchronously
-    if (hallDataToEdit) {
-      form.reset(hallDataToEdit);
+    if (hallId) {
+      const hall = getHallById(hallId);
+      if (hall) {
+        // Convert equipment labels from context to IDs for the form
+        const equipmentIds = hall.equipment.map(label => equipmentLabelToIdMap.get(label) || label);
+        const formData = {
+            ...hall,
+            equipment: equipmentIds,
+        };
+        setHallDataToEdit(formData);
+        form.reset(formData);
+      } else {
+         toast({ title: "Error", description: "Hall not found.", variant: "destructive" });
+         router.push("/admin/dashboard");
+      }
+      setIsLoading(false);
     }
-  }, [hallDataToEdit, form]);
+  }, [hallId, getHallById, form, router, toast]);
 
 
   function onSubmit(data: HallFormValues) {
-    console.log("Updated hall data:", { id: params.hallId, ...data });
+    if (!hallId) return;
+    const hallDataForContext: HallFormData = {
+        name: data.name,
+        capacity: data.capacity,
+        equipment: data.equipment, // these are IDs
+        imageUrl: data.imageUrl,
+        imageHint: data.imageHint,
+    };
+    updateHall(hallId, hallDataForContext);
     toast({
       title: "Hall Updated!",
       description: `${data.name} has been successfully updated.`,
@@ -84,8 +105,13 @@ export default function EditHallPage({ params }: { params: { hallId: string } })
     router.push("/admin/dashboard");
   }
   
+  if (isLoading) {
+    return <PageTitle>Loading hall details...</PageTitle>;
+  }
+
   if (!hallDataToEdit) {
-    return <PageTitle>Hall not found</PageTitle>; // Or a more sophisticated loading/error state
+    // This case should ideally be handled by the redirect in useEffect
+    return <PageTitle>Hall not found</PageTitle>;
   }
 
   return (
@@ -179,11 +205,25 @@ export default function EditHallPage({ params }: { params: { hallId: string } })
                 name="imageUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Image URL (Optional)</FormLabel>
+                    <FormLabel>Image URL</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} placeholder="https://placehold.co/600x400.png" />
                     </FormControl>
                      <FormDescription>Update the URL for the hall's image.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="imageHint"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Image Hint (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., modern auditorium" {...field} />
+                    </FormControl>
+                    <FormDescription>One or two keywords for AI image search (e.g., "lecture hall", "stage view").</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -196,3 +236,4 @@ export default function EditHallPage({ params }: { params: { hallId: string } })
     </div>
   );
 }
+
