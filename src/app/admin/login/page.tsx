@@ -26,14 +26,15 @@ export default function AdminLoginPage() {
 
       if (response.error) {
         setError(response.error);
-      } else if (response.data?.user) {
+      } else if (response.data && typeof response.data === 'object' && 'user' in response.data) {
         // Check if user is admin
-        if (response.data.user.role === 'admin') {
+        const userData = (response.data as any).user;
+        if (userData.role === 'admin') {
           console.log('✅ Admin login successful');
-          console.log('👤 Login response user:', response.data.user);
+          console.log('👤 Login response user:', userData);
 
           // Manually store user data to ensure it's saved
-          localStorage.setItem('user', JSON.stringify(response.data.user));
+          localStorage.setItem('user', JSON.stringify(userData));
           console.log('💾 Manually stored user in localStorage');
 
           // Verify storage
@@ -109,7 +110,7 @@ export default function AdminLoginPage() {
           </form>
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/admin/register" className="text-blue-600 hover:underline">
                 Register here
               </Link>

@@ -110,7 +110,7 @@ export default function AdminDashboardPage() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the hall "{hall.name}".
+                              This action cannot be undone. This will permanently delete the hall &quot;{hall.name}&quot;.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

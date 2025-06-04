@@ -50,7 +50,7 @@ export default function EditHallPage() {
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
-  const hallId = params.hallId as string;
+  const hallId = params?.hallId as string;
   const { getHallById, updateHall } = useHalls();
   const [hallDataToEdit, setHallDataToEdit] = useState<HallFormValues | null>(null);
   const [isLoading, setIsLoading] = useState(true);

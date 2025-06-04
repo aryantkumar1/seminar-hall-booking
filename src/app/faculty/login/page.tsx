@@ -26,14 +26,15 @@ export default function FacultyLoginPage() {
 
       if (response.error) {
         setError(response.error);
-      } else if (response.data?.user) {
+      } else if (response.data && typeof response.data === 'object' && 'user' in response.data) {
         // Check if user is faculty
-        if (response.data.user.role === 'faculty') {
+        const userData = (response.data as any).user;
+        if (userData.role === 'faculty') {
           console.log('✅ Faculty login successful');
-          console.log('👤 Faculty login response user:', response.data.user);
+          console.log('👤 Faculty login response user:', userData);
 
           // Manually store user data to ensure it's saved
-          localStorage.setItem('user', JSON.stringify(response.data.user));
+          localStorage.setItem('user', JSON.stringify(userData));
           console.log('💾 Manually stored faculty user in localStorage');
 
           // Verify storage
@@ -109,7 +110,7 @@ export default function FacultyLoginPage() {
           </form>
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/faculty/register" className="text-green-600 hover:underline">
                 Register here
               </Link>

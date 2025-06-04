@@ -47,12 +47,22 @@ export function AuthForm({ formType, userRole }: AuthFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Use try-catch for useAuth to handle any context errors
-  let authContext;
-  try {
-    authContext = useAuth();
-  } catch (error) {
-    console.error('Auth context error:', error);
+  // Always call hooks at the top level
+  const authContext = useAuth();
+  const validationSchema = getValidationSchema(formType);
+  type ValidationSchemaType = z.infer<typeof validationSchema>;
+
+  const form = useForm<ValidationSchemaType>({
+    resolver: zodResolver(validationSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      ...(formType === "register" && { name: "" }),
+    },
+  });
+
+  // Handle auth context errors after hooks
+  if (!authContext) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <div className="text-center">
@@ -65,17 +75,6 @@ export function AuthForm({ formType, userRole }: AuthFormProps) {
   }
 
   const { login, register } = authContext;
-  const validationSchema = getValidationSchema(formType);
-  type ValidationSchemaType = z.infer<typeof validationSchema>;
-
-  const form = useForm<ValidationSchemaType>({
-    resolver: zodResolver(validationSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      ...(formType === "register" && { name: "" }),
-    },
-  });
 
   async function onSubmit(values: ValidationSchemaType) {
     setIsLoading(true);
@@ -133,7 +132,7 @@ export function AuthForm({ formType, userRole }: AuthFormProps) {
               {formType === "register" && (
                 <FormField
                   control={form.control}
-                  name="name"
+                  name={"name" as any}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Name</FormLabel>

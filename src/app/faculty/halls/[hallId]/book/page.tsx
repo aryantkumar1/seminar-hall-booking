@@ -18,7 +18,7 @@ export default function BookHallPage() {
   const router = useRouter();
 
   // Try multiple ways to get the hallId
-  const hallId = params.hallId as string || params['hallId'] as string;
+  const hallId = params?.hallId as string || params?.['hallId'] as string;
   const { getHallById, halls, loading } = useHalls();
   const [hall, setHall] = useState<Hall | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +27,7 @@ export default function BookHallPage() {
     console.log('BookHallPage Debug Info:');
     console.log('- window.location.pathname:', typeof window !== 'undefined' ? window.location.pathname : 'N/A');
     console.log('- params:', params);
-    console.log('- params keys:', Object.keys(params));
+    console.log('- params keys:', params ? Object.keys(params) : 'null');
     console.log('- hallId:', hallId);
     console.log('- typeof hallId:', typeof hallId);
     console.log('- loading:', loading);

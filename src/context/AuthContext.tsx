@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { AuthResponse, ApiResponse } from '@/types/api';
 
 export interface User {
   id: string;
@@ -113,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Check if this is a page reload by looking at performance navigation
       const isReload = performance.navigation?.type === 1 ||
-                      performance.getEntriesByType('navigation')[0]?.type === 'reload';
+                      (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type === 'reload';
 
       console.log('🔍 Page load type:', { isReload });
 
@@ -252,12 +253,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🔍 Validating token with server...');
       const response = await api.getCurrentUser();
 
-      if (response.data?.user) {
+      if (response.data && typeof response.data === 'object' && response.data !== null && 'user' in response.data) {
         // Update user data from server
-        setUserWithLogging(response.data.user);
+        const authData = response.data as AuthResponse;
+        setUserWithLogging(authData.user);
         // Also update localStorage with fresh data
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        console.log('✅ Auth validated with server:', response.data.user.name);
+        localStorage.setItem('user', JSON.stringify(authData.user));
+        console.log('✅ Auth validated with server:', authData.user.name);
       } else if (response.error) {
         // Handle different types of errors
         const currentPath = window.location.pathname;
@@ -315,7 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
     try {
       console.log('🔐 AuthContext login called');
-      const response = await api.login(email, password);
+      const response = await api.login(email, password) as ApiResponse<AuthResponse>;
       console.log('🔐 AuthContext login response:', response);
 
       if (response.error) {
@@ -327,21 +329,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
-      if (response.data?.user) {
+      if (response.data && 'user' in response.data) {
         console.log('🔐 Setting user in AuthContext:', response.data.user);
 
         // Store user data in localStorage FIRST to ensure it's available immediately
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        const authData = response.data as AuthResponse;
+        localStorage.setItem('user', JSON.stringify(authData.user));
         console.log('🔐 User stored in localStorage via AuthContext');
 
         // Then update the context state
-        setUserWithLogging(response.data.user);
+        setUserWithLogging(authData.user);
         setSessionRecovered(true);
         setLoading(false); // Ensure loading is false after successful login
 
         // Emit additional event to notify components
         window.dispatchEvent(new CustomEvent('loginSuccess', {
-          detail: { user: response.data.user }
+          detail: { user: authData.user }
         }));
 
         // Also emit a cross-tab login event
@@ -349,7 +352,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         toast({
           title: 'Login Successful',
-          description: `Welcome back, ${response.data.user.name}!`,
+          description: `Welcome back, ${authData.user.name}!`,
         });
         return true;
       }
@@ -373,8 +376,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role: 'admin' | 'faculty'
   ): Promise<boolean> => {
     try {
-      const response = await api.register(name, email, password, role);
-      
+      const response = await api.register(name, email, password, role) as ApiResponse<AuthResponse>;
+
       if (response.error) {
         toast({
           title: 'Registration Failed',
@@ -384,13 +387,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
-      if (response.data?.user) {
-        setUserWithLogging(response.data.user);
+      if (response.data && 'user' in response.data) {
+        const authData = response.data as AuthResponse;
+        setUserWithLogging(authData.user);
         // Store user data in localStorage for persistence
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('user', JSON.stringify(authData.user));
         toast({
           title: 'Registration Successful',
-          description: `Welcome to HallHub, ${response.data.user.name}!`,
+          description: `Welcome to HallHub, ${authData.user.name}!`,
         });
         return true;
       }
@@ -427,8 +431,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback(async () => {
     try {
       const response = await api.getCurrentUser();
-      if (response.data?.user) {
-        setUserWithLogging(response.data.user);
+      if (response.data && typeof response.data === 'object' && response.data !== null && 'user' in response.data) {
+        const authData = response.data as AuthResponse;
+        setUserWithLogging(authData.user);
       }
     } catch (error) {
       console.error('Refresh user error:', error);

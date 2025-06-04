@@ -67,8 +67,8 @@ class ApiClient {
     });
 
     // Store token in localStorage if login successful
-    if (response.data?.token && typeof window !== 'undefined') {
-      localStorage.setItem('token', response.data.token);
+    if (response.data && typeof response.data === 'object' && 'token' in response.data && typeof window !== 'undefined') {
+      localStorage.setItem('token', (response.data as any).token);
     }
 
     return response;
@@ -81,8 +81,8 @@ class ApiClient {
     });
 
     // Store token in localStorage if registration successful
-    if (response.data?.token && typeof window !== 'undefined') {
-      localStorage.setItem('token', response.data.token);
+    if (response.data && typeof response.data === 'object' && 'token' in response.data && typeof window !== 'undefined') {
+      localStorage.setItem('token', (response.data as any).token);
     }
 
     return response;

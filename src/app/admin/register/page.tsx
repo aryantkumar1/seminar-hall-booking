@@ -27,9 +27,10 @@ export default function AdminRegisterPage() {
 
       if (response.error) {
         setError(response.error);
-      } else if (response.data?.user) {
+      } else if (response.data && typeof response.data === 'object' && 'user' in response.data) {
         // Store user info and redirect
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        const userData = (response.data as any).user;
+        localStorage.setItem('user', JSON.stringify(userData));
         router.push('/admin/dashboard');
       } else {
         setError('Registration failed. Please try again.');

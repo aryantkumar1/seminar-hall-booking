@@ -19,7 +19,7 @@ export function AuthGuard({ children, requiredRole, fallbackPath }: AuthGuardPro
   const [isCheckingAuth, setIsCheckingAuth] = useState(false);
 
   // Skip auth check for login and register pages
-  const isAuthPage = pathname.includes('/login') || pathname.includes('/register');
+  const isAuthPage = pathname?.includes('/login') || pathname?.includes('/register');
 
   // Always call useAuth (Rules of Hooks)
   const { user, loading, sessionRecovered } = useAuth();

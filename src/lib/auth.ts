@@ -2,11 +2,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { NextRequest } from 'next/server';
 
-if (!process.env.JWT_SECRET) {
-  throw new Error('Invalid/Missing environment variable: "JWT_SECRET"');
-}
-
-const JWT_SECRET = process.env.JWT_SECRET;
+// Allow build to proceed without JWT_SECRET (will be set at runtime)
+const JWT_SECRET = process.env.JWT_SECRET || 'build-time-placeholder';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface JWTPayload {
@@ -29,11 +26,17 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 
 // Generate JWT token
 export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'build-time-placeholder') {
+    throw new Error('Invalid/Missing environment variable: "JWT_SECRET"');
+  }
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN } as jwt.SignOptions);
 }
 
 // Verify JWT token
 export function verifyToken(token: string): JWTPayload | null {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'build-time-placeholder') {
+    throw new Error('Invalid/Missing environment variable: "JWT_SECRET"');
+  }
   try {
     return jwt.verify(token, JWT_SECRET) as JWTPayload;
   } catch (error) {

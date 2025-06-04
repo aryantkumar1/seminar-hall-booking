@@ -87,8 +87,8 @@ export function HallProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const response = await api.getHalls();
-      if (response.data?.halls) {
-        setHalls(response.data.halls);
+      if (response.data && typeof response.data === 'object' && 'halls' in response.data) {
+        setHalls((response.data as any).halls);
       } else if (response.error) {
         // Don't show errors on login pages
         const currentPath = window.location.pathname;
@@ -134,8 +134,8 @@ export function HallProvider({ children }: { children: ReactNode }) {
 
       const response = await api.createHall(hallPayload);
 
-      if (response.data?.hall) {
-        setHalls(prevHalls => [...prevHalls, response.data.hall]);
+      if (response.data && typeof response.data === 'object' && 'hall' in response.data) {
+        setHalls(prevHalls => [...prevHalls, (response.data as any).hall]);
         toast({
           title: 'Success',
           description: 'Hall created successfully',
@@ -169,10 +169,10 @@ export function HallProvider({ children }: { children: ReactNode }) {
         imageUrl: data.imageUrl,
       });
 
-      if (response.data?.hall) {
+      if (response.data && typeof response.data === 'object' && 'hall' in response.data) {
         setHalls(prevHalls =>
           prevHalls.map(hall =>
-            hall.id === hallId ? response.data.hall : hall
+            hall.id === hallId ? (response.data as any).hall : hall
           )
         );
         toast({

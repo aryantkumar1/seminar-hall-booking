@@ -38,7 +38,7 @@ jobs:
       run: npm run lint
 
     - name: Run TypeScript check (Frontend)
-      run: npm run type-check
+      run: npx tsc --noEmit --project .
 
     - name: Run ESLint (Backend)
       run: cd backend && npm run lint

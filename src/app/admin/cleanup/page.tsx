@@ -101,10 +101,10 @@ export default function CleanupPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <PageTitle 
-        title="Database Cleanup" 
-        description="Manage and reset application data"
-      />
+      <PageTitle>
+        Database Cleanup
+      </PageTitle>
+      <p className="text-gray-600 mb-6">Manage and reset application data</p>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Clear Frontend Cache */}
@@ -187,7 +187,7 @@ export default function CleanupPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-blue-700">
-            After running the complete cleanup, you'll need to:
+            After running the complete cleanup, you&apos;ll need to:
           </p>
           <ul className="text-sm text-blue-700 mt-2 space-y-1">
             <li>1. Create new admin and faculty users</li>

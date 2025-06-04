@@ -83,8 +83,15 @@ export async function POST(request: NextRequest) {
 
     const hallData = validationResult.data;
 
+    // Ensure required fields are present
+    const createData = {
+      ...hallData,
+      imageUrl: hallData.imageUrl || '',
+      imageHint: hallData.imageHint || ''
+    };
+
     // Create hall
-    const hall = await HallModel.create(hallData);
+    const hall = await HallModel.create(createData);
 
     return NextResponse.json({
       message: 'Hall created successfully',

@@ -78,10 +78,10 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const response = await api.getBookings();
-      if (response.data?.bookings) {
-        const transformedBookings = response.data.bookings
+      if (response.data && typeof response.data === 'object' && 'bookings' in response.data) {
+        const transformedBookings = (response.data as any).bookings
           .map(transformBooking)
-          .filter((booking): booking is Booking => booking !== null);
+          .filter((booking: any): booking is Booking => booking !== null);
         setBookings(transformedBookings);
       }
     } catch (error) {
@@ -153,8 +153,8 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         purpose: data.purpose,
       });
 
-      if (response.data?.booking) {
-        const transformedBooking = transformBooking(response.data.booking);
+      if (response.data && typeof response.data === 'object' && 'booking' in response.data) {
+        const transformedBooking = transformBooking((response.data as any).booking);
         if (transformedBooking) {
           setBookings(prevBookings => [...prevBookings, transformedBooking]);
         }
@@ -187,7 +187,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.updateBookingStatus(bookingId, status);
 
-      if (response.data?.booking || !response.error) {
+      if ((response.data && typeof response.data === 'object' && 'booking' in response.data) || !response.error) {
         // Update the booking in the local state
         setBookings(prevBookings =>
           prevBookings.map(booking =>
