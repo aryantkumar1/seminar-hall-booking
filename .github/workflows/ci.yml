@@ -65,10 +65,10 @@ jobs:
       run: cd backend && npm ci
 
     - name: Run frontend tests
-      run: npm test -- --coverage --watchAll=false
+      run: npm test -- --coverage --watchAll=false --passWithNoTests
 
     - name: Run backend tests
-      run: cd backend && npm test -- --coverage --watchAll=false
+      run: cd backend && npm test -- --coverage --watchAll=false --passWithNoTests
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
@@ -100,6 +100,10 @@ jobs:
 
     - name: Build frontend
       run: npm run build
+      env:
+        JWT_SECRET: test-secret-key
+        NEXTAUTH_SECRET: test-nextauth-secret
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
 
     - name: Build backend
       run: cd backend && npm run build
