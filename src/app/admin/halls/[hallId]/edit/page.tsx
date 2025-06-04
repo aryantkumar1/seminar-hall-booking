@@ -23,6 +23,7 @@ import { useRouter, useParams } from "next/navigation"; // useParams can be used
 import { useEffect, useState } from "react";
 import { Edit3 } from "lucide-react";
 import { useHalls, type HallFormData } from '@/context/HallContext';
+import { FileUpload } from '@/components/ui/file-upload';
 
 const hallFormSchema = z.object({
   name: z.string().min(3, { message: "Hall name must be at least 3 characters." }),
@@ -30,8 +31,6 @@ const hallFormSchema = z.object({
   equipment: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "You have to select at least one equipment item.",
   }),
-  imageUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
-  imageHint: z.string().min(2, {message: "Image hint must be at least 2 characters."}).max(50, {message: "Image hint must be 50 characters or less."}).optional().or(z.literal('')),
 });
 
 type HallFormValues = z.infer<typeof hallFormSchema>;
@@ -55,6 +54,8 @@ export default function EditHallPage() {
   const { getHallById, updateHall } = useHalls();
   const [hallDataToEdit, setHallDataToEdit] = useState<HallFormValues | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
 
   const form = useForm<HallFormValues>({
     resolver: zodResolver(hallFormSchema),
@@ -62,8 +63,6 @@ export default function EditHallPage() {
       name: "",
       capacity: 50,
       equipment: [],
-      imageUrl: "",
-      imageHint: "",
     },
   });
   
@@ -74,10 +73,12 @@ export default function EditHallPage() {
         // Convert equipment labels from context to IDs for the form
         const equipmentIds = hall.equipment.map(label => equipmentLabelToIdMap.get(label) || label);
         const formData = {
-            ...hall,
+            name: hall.name,
+            capacity: hall.capacity,
             equipment: equipmentIds,
         };
         setHallDataToEdit(formData);
+        setCurrentImageUrl(hall.imageUrl || '');
         form.reset(formData);
       } else {
          toast({ title: "Error", description: "Hall not found.", variant: "destructive" });
@@ -88,22 +89,52 @@ export default function EditHallPage() {
   }, [hallId, getHallById, form, router, toast]);
 
 
-  function onSubmit(data: HallFormValues) {
+  async function onSubmit(data: HallFormValues) {
     if (!hallId) return;
+
+    let imageUrl = currentImageUrl; // Keep existing image if no new file
+
+    // If a new file is selected, convert it to base64
+    if (selectedFile) {
+      try {
+        const base64 = await convertFileToBase64(selectedFile);
+        imageUrl = base64;
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to process image. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const hallDataForContext: HallFormData = {
         name: data.name,
         capacity: data.capacity,
         equipment: data.equipment, // these are IDs
-        imageUrl: data.imageUrl,
-        imageHint: data.imageHint,
+        imageUrl: imageUrl,
     };
-    updateHall(hallId, hallDataForContext);
-    toast({
-      title: "Hall Updated!",
-      description: `${data.name} has been successfully updated.`,
-    });
-    router.push("/admin/dashboard");
+
+    const success = await updateHall(hallId, hallDataForContext);
+    if (success) {
+      toast({
+        title: "Hall Updated!",
+        description: `${data.name} has been successfully updated.`,
+      });
+      router.push("/admin/dashboard");
+    }
   }
+
+  // Helper function to convert file to base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
   
   if (isLoading) {
     return <PageTitle>Loading hall details...</PageTitle>;
@@ -170,7 +201,6 @@ export default function EditHallPage() {
                         render={({ field }) => {
                           return (
                             <FormItem
-                              key={item.id}
                               className="flex flex-row items-start space-x-3 space-y-0"
                             >
                               <FormControl>
@@ -200,34 +230,20 @@ export default function EditHallPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Image URL</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="https://placehold.co/600x400.png" />
-                    </FormControl>
-                     <FormDescription>Update the URL for the hall's image.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="imageHint"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Image Hint (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., modern auditorium" {...field} />
-                    </FormControl>
-                    <FormDescription>One or two keywords for AI image search (e.g., "lecture hall", "stage view").</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Hall Image
+                </label>
+                <FileUpload
+                  onFileSelect={setSelectedFile}
+                  maxSize={5}
+                  accept="image/*"
+                  currentImageUrl={currentImageUrl}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Upload a new image to replace the current one (optional). Max size: 5MB.
+                </p>
+              </div>
               <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">Save Changes</Button>
             </form>
           </Form>

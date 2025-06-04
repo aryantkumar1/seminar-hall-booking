@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { AppLogo } from '@/components/shared/AppLogo';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, LogOut, CalendarDays, Home, PlusSquare, CalendarCheck } from 'lucide-react'; // Added Home, PlusSquare, CalendarCheck
+import { Menu, LogOut, CalendarDays, Home, PlusSquare, CalendarCheck, User } from 'lucide-react'; // Added Home, PlusSquare, CalendarCheck, User
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { format, isSameDay } from 'date-fns';
-import { useBookings, type Booking } from '@/context/BookingContext'; 
+import { useBookings, type Booking } from '@/context/BookingContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface NavLink {
   href: string;
@@ -23,8 +24,15 @@ interface AppHeaderProps {
 }
 
 function ScheduleCalendar() {
-  const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date()); 
-  const { bookings: allBookings } = useBookings(); 
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined);
+  const [isClient, setIsClient] = useState(false);
+  const { bookings: allBookings, loading } = useBookings();
+
+  // Set initial date only on client side to avoid hydration mismatch
+  useEffect(() => {
+    setIsClient(true);
+    setSelectedDay(new Date());
+  }, []);
 
   const bookedDates = useMemo(() => allBookings.map(b => b.date), [allBookings]);
 
@@ -33,13 +41,21 @@ function ScheduleCalendar() {
     return allBookings.filter(booking => isSameDay(booking.date, selectedDay) && booking.status === 'Approved');
   }, [selectedDay, allBookings]);
 
+  if (!isClient || loading) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-sm text-muted-foreground">Loading schedule...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <Calendar
         mode="single"
         selected={selectedDay}
         onSelect={setSelectedDay}
-        modifiers={{ booked: bookedDates.filter(date => allBookings.find(b => isSameDay(b.date, date) && b.status === 'Approved')) }} 
+        modifiers={{ booked: bookedDates.filter(date => allBookings.find(b => isSameDay(b.date, date) && b.status === 'Approved')) }}
         modifiersClassNames={{ booked: 'day-booked' }}
         className="rounded-md"
         initialFocus
@@ -68,18 +84,30 @@ function ScheduleCalendar() {
   );
 }
 
-export function AppHeader({ userRole }: AppHeaderProps) {
+export function AppHeader({ userRole: propUserRole }: AppHeaderProps) {
+  const { user } = useAuth();
+  const [isClient, setIsClient] = useState(false);
+
+  // Only use user role on client side to avoid hydration mismatch
+  const userRole = isClient ? (user?.role || propUserRole) : undefined;
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   let navLinks: NavLink[] = [];
   if (userRole === 'admin') {
     navLinks = [
       { href: '/admin/dashboard', label: 'Dashboard', icon: Home },
       { href: '/admin/halls/create', label: 'Create Hall', icon: PlusSquare },
       { href: '/admin/booking-requests', label: 'Booking Requests', icon: CalendarCheck },
+      { href: '/admin/profile', label: 'Profile', icon: User },
     ];
   } else if (userRole === 'faculty') {
     navLinks = [
       { href: '/faculty/halls', label: 'Halls', icon: Home },
       { href: '/faculty/my-bookings', label: 'My Bookings', icon: CalendarCheck },
+      { href: '/faculty/profile', label: 'Profile', icon: User },
     ];
   }
 
@@ -87,95 +115,107 @@ export function AppHeader({ userRole }: AppHeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <AppLogo />
-        <nav className="hidden md:flex items-center space-x-1 text-sm font-medium"> {/* Reduced space-x */}
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              passHref
-              legacyBehavior>
-              <Button variant="ghost" asChild className="transition-colors hover:text-primary px-3">
-                <a> {/* Added anchor for Button asChild */}
-                  {link.icon && <link.icon className="mr-1.5 h-4 w-4" />}
-                  {link.label}
-                </a>
-              </Button>
-            </Link>
-          ))}
-
-          {userRole && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary px-3">
-                  <CalendarDays className="mr-1.5 h-4 w-4" /> Schedule
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-4 mt-1 sm:min-w-[320px] max-h-[80vh] overflow-y-auto shadow-xl rounded-lg">
-                <ScheduleCalendar />
-              </PopoverContent>
-            </Popover>
-          )}
-
-          {userRole && (
-             <Link href="/" passHref legacyBehavior>
-                <Button variant="ghost" size="sm" asChild className="px-3">
-                  <a> {/* Added anchor for Button asChild */}
-                    <LogOut className="mr-1.5 h-4 w-4" /> Logout
+        {isClient ? (
+          <nav className="hidden md:flex items-center space-x-1 text-sm font-medium">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                passHref
+                legacyBehavior>
+                <Button variant="ghost" asChild className="transition-colors hover:text-primary px-3">
+                  <a>
+                    {link.icon && <link.icon className="mr-1.5 h-4 w-4" />}
+                    {link.label}
                   </a>
                 </Button>
-             </Link>
-          )}
-        </nav>
+              </Link>
+            ))}
+
+            {userRole && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-primary px-3">
+                    <CalendarDays className="mr-1.5 h-4 w-4" /> Schedule
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-4 mt-1 sm:min-w-[320px] max-h-[80vh] overflow-y-auto shadow-xl rounded-lg">
+                  <ScheduleCalendar />
+                </PopoverContent>
+              </Popover>
+            )}
+
+            {userRole && (
+               <Link href="/" passHref legacyBehavior>
+                  <Button variant="ghost" size="sm" asChild className="px-3">
+                    <a>
+                      <LogOut className="mr-1.5 h-4 w-4" /> Logout
+                    </a>
+                  </Button>
+               </Link>
+            )}
+          </nav>
+        ) : (
+          <div className="hidden md:flex items-center space-x-1 text-sm font-medium">
+            {/* Placeholder for server-side rendering to match client structure */}
+          </div>
+        )}
         <div className="md:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-              <nav className="flex flex-col space-y-2 mt-8"> {/* Reduced space-y */}
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    passHref
-                    legacyBehavior>
-                     <Button variant="ghost" asChild className="text-lg justify-start hover:text-primary px-2 py-3 rounded-md">
-                        <a> {/* Added anchor for Button asChild */}
-                         {link.icon && <link.icon className="mr-2 h-5 w-5" />}
-                         {link.label}
-                        </a>
-                     </Button>
-                  </Link>
-                ))}
-
-                {userRole && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                       <Button variant="ghost" className="w-full justify-start text-lg hover:text-primary px-2 py-3 rounded-md">
-                         <CalendarDays className="mr-2 h-5 w-5" /> Schedule
+          {isClient ? (
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                  <span className="sr-only">Toggle Menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                <nav className="flex flex-col space-y-2 mt-8">
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      passHref
+                      legacyBehavior>
+                       <Button variant="ghost" asChild className="text-lg justify-start hover:text-primary px-2 py-3 rounded-md">
+                          <a>
+                           {link.icon && <link.icon className="mr-2 h-5 w-5" />}
+                           {link.label}
+                          </a>
                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-4 mt-1 sm:min-w-[320px] max-h-[calc(80vh-2rem)] overflow-y-auto shadow-xl rounded-lg ml-[-10px] sm:ml-0">
-                      <ScheduleCalendar />
-                    </PopoverContent>
-                  </Popover>
-                )}
+                    </Link>
+                  ))}
 
-                {userRole && (
-                  <Link href="/" passHref legacyBehavior>
-                    <Button variant="outline" asChild className="w-full mt-4">
-                      <a> {/* Added anchor for Button asChild */}
-                        <LogOut className="mr-2 h-4 w-4" /> Logout
-                      </a>
-                    </Button>
-                  </Link>
-                )}
-              </nav>
-            </SheetContent>
-          </Sheet>
+                  {userRole && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                         <Button variant="ghost" className="w-full justify-start text-lg hover:text-primary px-2 py-3 rounded-md">
+                           <CalendarDays className="mr-2 h-5 w-5" /> Schedule
+                         </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-4 mt-1 sm:min-w-[320px] max-h-[calc(80vh-2rem)] overflow-y-auto shadow-xl rounded-lg ml-[-10px] sm:ml-0">
+                        <ScheduleCalendar />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+
+                  {userRole && (
+                    <Link href="/" passHref legacyBehavior>
+                      <Button variant="outline" asChild className="w-full mt-4">
+                        <a>
+                          <LogOut className="mr-2 h-4 w-4" /> Logout
+                        </a>
+                      </Button>
+                    </Link>
+                  )}
+                </nav>
+              </SheetContent>
+            </Sheet>
+          ) : (
+            <div>
+              {/* Placeholder for server-side rendering */}
+            </div>
+          )}
         </div>
       </div>
     </header>

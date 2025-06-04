@@ -43,3 +43,12 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+
+# Docker
+Dockerfile.prod
+docker-compose.prod.yml
+
+# CI/CD
+test-results/
+newman-results/
+.nyc_output/

@@ -80,7 +80,7 @@ export function BookingForm({ hallId, hallName }: BookingFormProps) {
     }
   });
 
-  function onSubmit(data: BookingFormValues) {
+  async function onSubmit(data: BookingFormValues) {
     const bookingDataForContext: BookingFormData = {
         hallId,
         hallName,
@@ -89,8 +89,12 @@ export function BookingForm({ hallId, hallName }: BookingFormProps) {
         endTime: data.endTime,
         purpose: data.purpose,
     };
-    addBooking(bookingDataForContext, MOCK_CURRENT_FACULTY_ID, MOCK_CURRENT_FACULTY_NAME);
-    router.push("/faculty/my-bookings"); // Redirect to my bookings page
+
+    const success = await addBooking(bookingDataForContext, MOCK_CURRENT_FACULTY_ID, MOCK_CURRENT_FACULTY_NAME);
+    if (success) {
+      router.push("/faculty/my-bookings"); // Redirect to my bookings page
+    }
+    // Error handling is done in the context
   }
 
   return (

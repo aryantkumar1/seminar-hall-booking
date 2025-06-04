@@ -48,10 +48,10 @@ export function HallCard({ hall }: HallCardProps) {
       <CardContent className="flex-grow">
         <h4 className="font-semibold text-sm mb-2">Equipment:</h4>
         <div className="flex flex-wrap gap-2">
-          {hall.equipment.map((item) => {
+          {hall.equipment.map((item, index) => {
             const IconComponent = equipmentIcons[item] || Tv; // Fallback to Tv if icon not found
             return (
-              <span key={item} className="flex items-center text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full">
+              <span key={`${item}-${index}`} className="flex items-center text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full">
                 <IconComponent className="w-3 h-3 mr-1" />
                 {item}
               </span>
@@ -60,7 +60,17 @@ export function HallCard({ hall }: HallCardProps) {
         </div>
       </CardContent>
       <CardFooter>
-        <Link href={`/faculty/halls/${hall.id}/book`} passHref className="w-full">
+        <Link
+          href={`/faculty/halls/${hall.id}/book`}
+          passHref
+          className="w-full"
+          onClick={() => {
+            console.log('HallCard: Navigating to hall booking page');
+            console.log('- Hall ID:', hall.id);
+            console.log('- Hall Name:', hall.name);
+            console.log('- Generated URL:', `/faculty/halls/${hall.id}/book`);
+          }}
+        >
           <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
             <CalendarPlus className="mr-2 h-4 w-4" /> Book Now
           </Button>

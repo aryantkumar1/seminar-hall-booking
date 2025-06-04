@@ -1,0 +1,243 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types:
+      - completed
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Build and Push Docker Images
+  build-and-push:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
+    name: Build and Push Docker Images
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # API Testing with Postman/Newman
+  api-testing:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    name: API Testing with Postman
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: seminar_hall_booking_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd backend && npm ci
+
+    - name: Setup test database
+      run: |
+        cd backend
+        npm run db:migrate
+        npm run db:seed
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/seminar_hall_booking_test
+
+    - name: Start application
+      run: |
+        cd backend && npm start &
+        npm run dev &
+        sleep 30
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/seminar_hall_booking_test
+        REDIS_URL: redis://localhost:6379
+        JWT_SECRET: test-secret-key
+        NODE_ENV: test
+
+    - name: Install Newman
+      run: npm install -g newman newman-reporter-htmlextra
+
+    - name: Run Postman tests
+      run: |
+        newman run tests/postman/seminar-hall-booking.postman_collection.json \
+          -e tests/postman/test.postman_environment.json \
+          --reporters cli,htmlextra \
+          --reporter-htmlextra-export newman-results/report.html \
+          --reporter-htmlextra-darkTheme
+
+    - name: Upload Newman results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: newman-results
+        path: newman-results/
+
+  # Deploy to Staging
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, api-testing]
+    name: Deploy to Staging
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging server
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.STAGING_HOST }}
+        username: ${{ secrets.STAGING_USER }}
+        key: ${{ secrets.STAGING_SSH_KEY }}
+        script: |
+          cd /opt/seminar-hall-booking
+          git pull origin main
+          docker-compose -f docker-compose.prod.yml down
+          docker-compose -f docker-compose.prod.yml pull
+          docker-compose -f docker-compose.prod.yml up -d
+          docker system prune -f
+
+  # Deploy with Terraform
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    name: Deploy to Production with Terraform
+    environment: production
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Terraform Init
+      run: |
+        cd terraform
+        terraform init
+
+    - name: Terraform Plan
+      run: |
+        cd terraform
+        terraform plan -var="docker_image_tag=${{ github.sha }}"
+
+    - name: Terraform Apply
+      run: |
+        cd terraform
+        terraform apply -auto-approve -var="docker_image_tag=${{ github.sha }}"
+
+    - name: Get deployment outputs
+      run: |
+        cd terraform
+        echo "Application URL: $(terraform output -raw application_url)"
+        echo "Grafana URL: $(terraform output -raw grafana_url)"
+        echo "Prometheus URL: $(terraform output -raw prometheus_url)"
+
+    - name: Run smoke tests
+      run: |
+        cd terraform
+        APP_URL=$(terraform output -raw application_url)
+
+        # Wait for application to be ready
+        for i in {1..30}; do
+          if curl -f "$APP_URL/api/health" > /dev/null 2>&1; then
+            echo "✅ Application is healthy"
+            break
+          fi
+          echo "⏳ Waiting for application... ($i/30)"
+          sleep 10
+        done
+
+        # Run Postman tests against deployed application
+        newman run tests/postman/seminar-hall-booking.postman_collection.json \
+          -e tests/postman/production.postman_environment.json \
+          --env-var "baseUrl=$APP_URL" \
+          --reporters cli,htmlextra \
+          --reporter-htmlextra-export newman-results/production-report.html
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: production-test-results
+        path: newman-results/

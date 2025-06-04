@@ -17,7 +17,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AppLogo } from "./AppLogo";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation"; // Corrected import
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { useState } from "react";
 
 type AuthFormType = "login" | "register";
 type UserRole = "admin" | "faculty";
@@ -43,6 +45,26 @@ const getValidationSchema = (formType: AuthFormType) => {
 export function AuthForm({ formType, userRole }: AuthFormProps) {
   const { toast } = useToast();
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Use try-catch for useAuth to handle any context errors
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    console.error('Auth context error:', error);
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Authentication Error</h1>
+          <p className="text-muted-foreground mb-4">There was an issue loading the authentication system.</p>
+          <p className="text-sm text-muted-foreground">Please refresh the page or try again later.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { login, register } = authContext;
   const validationSchema = getValidationSchema(formType);
   type ValidationSchemaType = z.infer<typeof validationSchema>;
 
@@ -56,17 +78,36 @@ export function AuthForm({ formType, userRole }: AuthFormProps) {
   });
 
   async function onSubmit(values: ValidationSchemaType) {
-    // Placeholder for actual API call
-    console.log(values);
-    toast({
-      title: `${formType === 'login' ? 'Login' : 'Registration'} Successful!`,
-      description: `Welcome, ${userRole}! (This is a demo)`,
-    });
-    // Simulate redirect after successful auth
-    if (userRole === 'admin') {
-      router.push('/admin/dashboard');
-    } else {
-      router.push('/faculty/halls');
+    setIsLoading(true);
+
+    try {
+      let success = false;
+
+      if (formType === 'login') {
+        success = await login(values.email, values.password);
+      } else {
+        // For register, we need to cast values to include name
+        const registerValues = values as { name: string; email: string; password: string };
+        success = await register(registerValues.name, registerValues.email, registerValues.password, userRole);
+      }
+
+      if (success) {
+        // Redirect after successful auth
+        if (userRole === 'admin') {
+          router.push('/admin/dashboard');
+        } else {
+          router.push('/faculty/halls');
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -130,8 +171,12 @@ export function AuthForm({ formType, userRole }: AuthFormProps) {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                {buttonText}
+              <Button
+                type="submit"
+                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Please wait...' : buttonText}
               </Button>
             </form>
           </Form>

@@ -29,7 +29,7 @@ export default function HomePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/admin/login" passHref>
+            <Link href="/admin/login">
               <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                 Admin Login
               </Button>
@@ -48,7 +48,7 @@ export default function HomePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/faculty/login" passHref>
+            <Link href="/faculty/login">
               <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
                 Faculty Login
               </Button>

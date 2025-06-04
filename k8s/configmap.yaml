@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: seminar-hall-config
+  namespace: seminar-hall-booking
+data:
+  NODE_ENV: "production"
+  REDIS_URL: "redis://redis-service:6379"
+  NEXT_PUBLIC_API_URL: "https://api.your-domain.com"
+  
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: seminar-hall-secrets
+  namespace: seminar-hall-booking
+type: Opaque
+data:
+  DATABASE_URL: <base64-encoded-database-url>
+  JWT_SECRET: <base64-encoded-jwt-secret>
+  POSTGRES_PASSWORD: <base64-encoded-postgres-password>

@@ -5,24 +5,65 @@ import { PageTitle } from '@/components/shared/PageTitle';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { CalendarClock, Info } from 'lucide-react';
+import { CalendarClock, Info, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { useBookings, type Booking } from '@/context/BookingContext';
-import { useMemo } from 'react';
-
-// Mock current faculty ID - in a real app, this would come from auth
-const MOCK_CURRENT_FACULTY_ID = "faculty007";
+import { useMemo, useEffect, useState } from 'react';
 
 export default function MyBookingsPage() {
-  const { bookings } = useBookings();
+  const { bookings, loading, deleteBooking } = useBookings();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    // Get current logged-in user
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setCurrentUser(JSON.parse(userData));
+    }
+  }, []);
 
   const facultyBookings = useMemo(() => {
-    // For now, let's assume we want to show bookings for the MOCK_CURRENT_FACULTY_ID
-    // or show all if we don't have a specific user context yet.
-    // To see bookings made by the form, we filter by MOCK_CURRENT_FACULTY_ID.
-    // To see all initial bookings, you can remove the filter.
-    return bookings.filter(b => b.facultyId === MOCK_CURRENT_FACULTY_ID).sort((a,b) => b.date.getTime() - a.date.getTime());
-  }, [bookings]);
+    if (!currentUser) return [];
+
+    // Filter bookings by current faculty user's ID
+    return bookings.filter(b => b.facultyId === currentUser.id || b.facultyId === currentUser._id)
+      .sort((a,b) => b.date.getTime() - a.date.getTime());
+  }, [bookings, currentUser]);
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+      return;
+    }
+
+    console.log('🗑️ Faculty attempting to cancel booking:', bookingId);
+    try {
+      const success = await deleteBooking(bookingId);
+      console.log('🗑️ Faculty cancellation result:', success);
+
+      if (!success) {
+        console.error('❌ Failed to cancel booking');
+        alert('Failed to cancel booking. Please try again.');
+      }
+      // No page reload needed - state is updated automatically by BookingContext
+    } catch (error) {
+      console.error('❌ Error cancelling booking:', error);
+      alert('Error cancelling booking. Please check your connection.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <PageTitle>My Bookings</PageTitle>
+        <Card className="shadow-lg">
+          <CardContent className="p-8 text-center">
+            <p>Loading your bookings...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -46,7 +87,8 @@ export default function MyBookingsPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Time</TableHead>
                   <TableHead>Purpose</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -56,13 +98,13 @@ export default function MyBookingsPage() {
                     <TableCell>{format(booking.date, 'PPP')}</TableCell>
                     <TableCell>{booking.startTime} - {booking.endTime}</TableCell>
                     <TableCell>{booking.purpose}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       <Badge
                         variant={
                           booking.status === 'Approved' ? 'default' :
                           booking.status === 'Pending' ? 'secondary' :
                           booking.status === 'Rejected' ? 'destructive' :
-                          'outline' 
+                          'outline'
                         }
                         className={
                           booking.status === 'Approved' ? 'bg-green-600 hover:bg-green-700 text-white' :
@@ -72,6 +114,17 @@ export default function MyBookingsPage() {
                       >
                         {booking.status}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-600 hover:text-gray-700 hover:bg-gray-100"
+                        onClick={() => handleCancelBooking(booking.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Cancel Booking</span>
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

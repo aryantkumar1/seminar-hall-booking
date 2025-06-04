@@ -22,6 +22,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { PlusCircle } from "lucide-react";
 import { useHalls, type HallFormData } from '@/context/HallContext';
+import { FileUpload } from '@/components/ui/file-upload';
+import { useState } from 'react';
 
 const hallFormSchema = z.object({
   name: z.string().min(3, { message: "Hall name must be at least 3 characters." }),
@@ -29,8 +31,6 @@ const hallFormSchema = z.object({
   equipment: z.array(z.string()).refine((value) => value.some((item) => item), {
     message: "You have to select at least one equipment item.",
   }),
-  imageUrl: z.string().url({ message: "Please enter a valid image URL." }).optional().or(z.literal('')),
-  imageHint: z.string().min(2, {message: "Image hint must be at least 2 characters."}).max(50, {message: "Image hint must be 50 characters or less."}).optional().or(z.literal('')),
 });
 
 type HallFormValues = z.infer<typeof hallFormSchema>;
@@ -48,6 +48,7 @@ export default function CreateHallPage() {
   const { toast } = useToast();
   const router = useRouter();
   const { addHall } = useHalls();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const form = useForm<HallFormValues>({
     resolver: zodResolver(hallFormSchema),
@@ -55,27 +56,54 @@ export default function CreateHallPage() {
       name: "",
       capacity: 50,
       equipment: [],
-      imageUrl: "",
-      imageHint: "",
     },
   });
 
-  function onSubmit(data: HallFormValues) {
+  async function onSubmit(data: HallFormValues) {
+    let imageUrl = '';
+
+    // If a file is selected, convert it to base64 for storage
+    if (selectedFile) {
+      try {
+        const base64 = await convertFileToBase64(selectedFile);
+        imageUrl = base64;
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to process image. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const hallDataForContext: HallFormData = {
         name: data.name,
         capacity: data.capacity,
         equipment: data.equipment, // these are IDs
-        imageUrl: data.imageUrl,
-        imageHint: data.imageHint,
+        imageUrl: imageUrl,
     };
-    addHall(hallDataForContext);
-    toast({
-      title: "Hall Created!",
-      description: `${data.name} has been successfully created.`,
-      className: "bg-primary text-primary-foreground",
-    });
-    router.push("/admin/dashboard");
+
+    const success = await addHall(hallDataForContext);
+    if (success) {
+      toast({
+        title: "Hall Created!",
+        description: `${data.name} has been successfully created.`,
+        className: "bg-primary text-primary-foreground",
+      });
+      router.push("/admin/dashboard");
+    }
   }
+
+  // Helper function to convert file to base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -133,7 +161,6 @@ export default function CreateHallPage() {
                         render={({ field }) => {
                           return (
                             <FormItem
-                              key={item.id}
                               className="flex flex-row items-start space-x-3 space-y-0"
                             >
                               <FormControl>
@@ -163,34 +190,19 @@ export default function CreateHallPage() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="imageUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Image URL</FormLabel>
-                    <FormControl>
-                      <Input placeholder="https://placehold.co/600x400.png" {...field} />
-                    </FormControl>
-                    <FormDescription>Paste a URL for the hall's image. (e.g. https://placehold.co/600x400.png)</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="imageHint"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Image Hint (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., modern auditorium" {...field} />
-                    </FormControl>
-                    <FormDescription>One or two keywords for AI image search (e.g., "lecture hall", "stage view").</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  Hall Image
+                </label>
+                <FileUpload
+                  onFileSelect={setSelectedFile}
+                  maxSize={5}
+                  accept="image/*"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Upload an image of the hall (optional). Max size: 5MB.
+                </p>
+              </div>
               <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">Create Hall</Button>
             </form>
           </Form>

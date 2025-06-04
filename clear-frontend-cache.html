@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Frontend Cache - HallHub</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button.danger {
+            background-color: #dc3545;
+        }
+        .button.danger:hover {
+            background-color: #c82333;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 HallHub Frontend Cache Cleaner</h1>
+        
+        <div class="info">
+            <p><strong>What this does:</strong></p>
+            <ul>
+                <li>Clears localStorage (user data, tokens)</li>
+                <li>Clears sessionStorage (temporary data)</li>
+                <li>Clears cookies (if any)</li>
+                <li>Resets all cached frontend data</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="button" onclick="clearCache()">
+                🗑️ Clear Frontend Cache
+            </button>
+            
+            <button class="button danger" onclick="clearAll()">
+                ⚠️ Clear Everything + Reload
+            </button>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div class="info">
+            <p><strong>When to use:</strong></p>
+            <ul>
+                <li>After database cleanup</li>
+                <li>When experiencing login issues</li>
+                <li>To start completely fresh</li>
+                <li>When switching between test accounts</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, isSuccess = true) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${isSuccess ? 'success' : 'error'}`;
+            status.style.display = 'block';
+        }
+
+        function clearCache() {
+            try {
+                // Clear localStorage
+                const localStorageCount = localStorage.length;
+                localStorage.clear();
+                
+                // Clear sessionStorage
+                const sessionStorageCount = sessionStorage.length;
+                sessionStorage.clear();
+                
+                showStatus(`✅ Cache cleared! Removed ${localStorageCount} localStorage items and ${sessionStorageCount} sessionStorage items.`);
+                
+                console.log('🧹 Frontend cache cleared successfully');
+            } catch (error) {
+                showStatus(`❌ Error clearing cache: ${error.message}`, false);
+                console.error('Error clearing cache:', error);
+            }
+        }
+
+        function clearAll() {
+            if (confirm('This will clear all cached data and reload the page. Continue?')) {
+                clearCache();
+                
+                // Also clear cookies
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                showStatus('🔄 Clearing everything and reloading...');
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
+        }
+
+        // Show current cache status on load
+        window.onload = function() {
+            const localCount = localStorage.length;
+            const sessionCount = sessionStorage.length;
+            
+            if (localCount > 0 || sessionCount > 0) {
+                showStatus(`📊 Current cache: ${localCount} localStorage items, ${sessionCount} sessionStorage items`);
+            } else {
+                showStatus('✨ Cache is already clean!');
+            }
+        };
+    </script>
+</body>
+</html>
