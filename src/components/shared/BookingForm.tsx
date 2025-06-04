@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,13 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -33,25 +28,28 @@ const bookingFormSchema = z.object({
   date: z.date({
     required_error: "A date for booking is required.",
   }),
-  timeSlot: z.string({
-    required_error: "Please select a time slot.",
+  startTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, {
+    message: "Please enter a valid start time (HH:MM).",
+  }),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, {
+    message: "Please enter a valid end time (HH:MM).",
   }),
   purpose: z.string().min(10, {
     message: "Purpose must be at least 10 characters.",
   }).max(200, {
     message: "Purpose must not exceed 200 characters.",
   }),
+}).refine(data => {
+  if (data.startTime && data.endTime) {
+    return data.endTime > data.startTime;
+  }
+  return true;
+}, {
+  message: "End time must be after start time.",
+  path: ["endTime"], // Path to show error on endTime field
 });
 
 type BookingFormValues = z.infer<typeof bookingFormSchema>;
-
-// Mock available time slots
-const timeSlots = [
-  "09:00 - 11:00",
-  "11:30 - 13:30",
-  "14:00 - 16:00",
-  "16:30 - 18:30",
-];
 
 interface BookingFormProps {
   hallName: string;
@@ -65,6 +63,8 @@ export function BookingForm({ hallName }: BookingFormProps) {
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       purpose: "",
+      startTime: "",
+      endTime: "",
     }
   });
 
@@ -72,7 +72,7 @@ export function BookingForm({ hallName }: BookingFormProps) {
     console.log(data);
     toast({
       title: "Booking Request Submitted!",
-      description: `Your request for ${hallName} on ${format(data.date, "PPP")} at ${data.timeSlot} has been sent for approval.`,
+      description: `Your request for ${hallName} on ${format(data.date, "PPP")} from ${data.startTime} to ${data.endTime} has been sent for approval.`,
       className: "bg-primary text-primary-foreground",
     });
     // Simulate redirect
@@ -127,34 +127,44 @@ export function BookingForm({ hallName }: BookingFormProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="timeSlot"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Time Slot</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="Select a time slot" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {timeSlots.map((slot) => (
-                    <SelectItem key={slot} value={slot}>
-                      {slot}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Choose an available time slot for the selected date.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="startTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Start Time</FormLabel>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <FormControl>
+                    <Input type="time" {...field} className="pl-10" />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="endTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>End Time</FormLabel>
+                 <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <FormControl>
+                    <Input type="time" {...field} className="pl-10" />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+         <FormDescription className="col-span-2">
+            Choose the start and end times for your booking.
+        </FormDescription>
+
 
         <FormField
           control={form.control}

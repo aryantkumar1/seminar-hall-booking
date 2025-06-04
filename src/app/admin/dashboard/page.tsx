@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { PageTitle } from '@/components/shared/PageTitle';
 import { Button } from '@/components/ui/button';
@@ -13,8 +14,8 @@ const mockHalls = [
 ];
 
 const mockBookingRequests = [
-  { id: 'b1', hallName: 'Grand Auditorium', facultyName: 'Dr. Smith', date: '2024-09-15', timeSlot: '09:00 - 11:00', status: 'pending' },
-  { id: 'b2', hallName: 'Innovation Hub', facultyName: 'Prof. Jones', date: '2024-09-16', timeSlot: '14:00 - 16:00', status: 'pending' },
+  { id: 'b1', hallName: 'Grand Auditorium', facultyName: 'Dr. Smith', date: '2024-09-15', startTime: '09:00', endTime: '11:00', status: 'pending' },
+  { id: 'b2', hallName: 'Innovation Hub', facultyName: 'Prof. Jones', date: '2024-09-16', startTime: '14:00', endTime: '16:00', status: 'pending' },
 ];
 
 export default function AdminDashboardPage() {
@@ -85,7 +86,7 @@ export default function AdminDashboardPage() {
                     <TableRow key={req.id}>
                       <TableCell>{req.hallName}</TableCell>
                       <TableCell>{req.facultyName}</TableCell>
-                      <TableCell>{req.date} <br/> <span className="text-xs text-muted-foreground">{req.timeSlot}</span></TableCell>
+                      <TableCell>{req.date} <br/> <span className="text-xs text-muted-foreground">{req.startTime} - {req.endTime}</span></TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button variant="ghost" size="icon" className="text-green-600 hover:text-green-700 hover:bg-green-100">
                           <CheckCircle2 className="h-5 w-5" />
