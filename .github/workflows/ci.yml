@@ -132,6 +132,12 @@ jobs:
         tags: seminar-hall-booking:test
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        build-args: |
+          MONGODB_URI=mongodb://localhost:27017/test
+          MONGODB_DB=seminar-hall-booking-test
+          JWT_SECRET=test-secret-key-for-ci
+          JWT_EXPIRES_IN=7d
+          NEXTAUTH_SECRET=test-nextauth-secret
 
     - name: Test Docker image
       run: |

@@ -24,14 +24,21 @@ COPY --from=deps /app/backend/node_modules ./backend/node_modules
 # Copy source code
 COPY . .
 
+# Accept build arguments
+ARG MONGODB_URI=mongodb://localhost:27017/seminar-hall-booking
+ARG MONGODB_DB=seminar-hall-booking
+ARG JWT_SECRET=your-secret-key-here
+ARG JWT_EXPIRES_IN=7d
+ARG NEXTAUTH_SECRET=your-nextauth-secret-here
+
 # Set environment variables for build
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
-ENV MONGODB_URI=mongodb://localhost:27017/seminar-hall-booking
-ENV MONGODB_DB=seminar-hall-booking
-ENV JWT_SECRET=your-secret-key-here
-ENV JWT_EXPIRES_IN=7d
-ENV NEXTAUTH_SECRET=your-nextauth-secret-here
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+ENV MONGODB_URI=$MONGODB_URI
+ENV MONGODB_DB=$MONGODB_DB
+ENV JWT_SECRET=$JWT_SECRET
+ENV JWT_EXPIRES_IN=$JWT_EXPIRES_IN
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 
 # Build the application
 RUN npm run build

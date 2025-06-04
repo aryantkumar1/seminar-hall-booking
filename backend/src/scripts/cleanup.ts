@@ -1,4 +1,4 @@
-import { connectDB } from '../config/database';
+import connectDB from '../config/database';
 import User from '../models/User';
 import Hall from '../models/Hall';
 import Booking from '../models/Booking';
