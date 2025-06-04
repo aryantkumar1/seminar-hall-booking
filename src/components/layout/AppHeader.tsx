@@ -98,7 +98,7 @@ export function AppHeader({ userRole }: AppHeaderProps) {
   } else if (userRole === 'faculty') {
     navLinks = [
       { href: '/faculty/halls', label: 'Halls' },
-      // { href: '/faculty/bookings', label: 'My Bookings' }, // Example for future
+      { href: '/faculty/my-bookings', label: 'My Bookings' },
     ];
   }
 
