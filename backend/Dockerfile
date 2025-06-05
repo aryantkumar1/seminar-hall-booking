@@ -15,8 +15,11 @@ RUN npm ci && npm cache clean --force
 # Copy source code
 COPY . .
 
-# Build TypeScript code
-RUN npm run build
+# Fix permissions for node_modules binaries
+RUN chmod +x node_modules/.bin/*
+
+# Build TypeScript code with explicit path
+RUN npx tsc
 
 # Install tsc-alias to resolve path aliases
 RUN npm install -g tsc-alias
