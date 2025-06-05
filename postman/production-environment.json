@@ -1,0 +1,19 @@
+{
+  "id": "production-environment",
+  "name": "Production Environment",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "{{baseUrl}}",
+      "description": "Production backend URL (will be set via --env-var)",
+      "enabled": true
+    },
+    {
+      "key": "apiUrl",
+      "value": "{{baseUrl}}",
+      "description": "API base URL",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}
