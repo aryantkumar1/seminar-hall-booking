@@ -30,15 +30,15 @@ scrape_configs:
   # Application backend
   - job_name: 'seminar-hall-backend'
     static_configs:
-      - targets: ['app:5000']
-    metrics_path: '/api/metrics'
+      - targets: ['backend:5000']
+    metrics_path: '/health'
     scrape_interval: 30s
 
   # Application frontend
   - job_name: 'seminar-hall-frontend'
     static_configs:
-      - targets: ['app:3000']
-    metrics_path: '/api/metrics'
+      - targets: ['frontend:9002']
+    metrics_path: '/health'
     scrape_interval: 30s
 
   # PostgreSQL metrics
