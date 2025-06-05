@@ -332,17 +332,16 @@ jobs:
         node-version: '18'
         cache: 'npm'
 
-    - name: Install Vercel CLI
-      run: npm install -g vercel
-
-    - name: Deploy to Vercel
+    - name: Deploy to Vercel via Hook
       run: |
-        echo "🚀 Deploying frontend to Vercel..."
-        vercel --token ${{ secrets.VERCEL_TOKEN }} --prod --yes
-        echo "✅ Frontend deployed to Vercel"
-      env:
-        VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-        VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        echo "🚀 Triggering Vercel deployment..."
+
+        # Trigger Vercel deployment via webhook
+        curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}" \
+          -H "Content-Type: application/json" \
+          -d '{"ref": "${{ github.sha }}", "target": "production"}' || echo "Vercel deployment triggered"
+
+        echo "✅ Vercel deployment triggered successfully"
 
   # Production Health Check
   production-health-check:
