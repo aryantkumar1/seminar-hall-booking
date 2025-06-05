@@ -1,4 +1,4 @@
-# Simple single-stage Docker build for CI/CD
+# Ultra-simple Docker build for CI/CD
 FROM node:18-alpine
 
 # Install curl for health checks
@@ -7,48 +7,28 @@ RUN apk add --no-cache curl
 # Set working directory
 WORKDIR /app
 
-# Accept build arguments
-ARG MONGODB_URI=mongodb://localhost:27017/seminar-hall-booking
-ARG MONGODB_DB=seminar-hall-booking
-ARG JWT_SECRET=your-secret-key-here
-ARG JWT_EXPIRES_IN=7d
-ARG NEXTAUTH_SECRET=your-nextauth-secret-here
-
 # Set environment variables
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-ENV MONGODB_URI=$MONGODB_URI
-ENV MONGODB_DB=$MONGODB_DB
-ENV JWT_SECRET=$JWT_SECRET
-ENV JWT_EXPIRES_IN=$JWT_EXPIRES_IN
-ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Copy package files
-COPY package*.json ./
+# Copy backend package files only
 COPY backend/package*.json ./backend/
 
-# Install dependencies
-RUN npm install
+# Install backend dependencies only
 RUN cd backend && npm install
 
-# Create public directory
-RUN mkdir -p public
+# Copy backend source code only
+COPY backend/ ./backend/
 
-# Copy source code
-COPY . .
-
-# Build only the backend (skip frontend for CI)
+# Build backend
 RUN cd backend && npm run build
 
-# Create a simple index.html for frontend
-RUN mkdir -p .next/standalone && echo '<html><body><h1>Seminar Hall Booking - CI Build</h1><p>Backend API available at :5000</p></body></html>' > .next/standalone/index.html
-
-# Expose ports
-EXPOSE 3000 5000
+# Expose backend port
+EXPOSE 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:5000/health || exit 1
 
-# Start only backend for CI
+# Start backend
 CMD ["sh", "-c", "cd backend && npm start"]
