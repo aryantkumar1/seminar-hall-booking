@@ -1,8 +1,6 @@
 name: CD Pipeline
 
 on:
-  push:
-    branches: [ main ]
   workflow_run:
     workflows: ["CI Pipeline"]
     types:
@@ -17,7 +15,7 @@ jobs:
   # Build and Push Docker Images
   build-and-push:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Build and Push Docker Images
     permissions:
       contents: read
@@ -66,19 +64,17 @@ jobs:
     name: API Testing with Postman
     
     services:
-      postgres:
-        image: postgres:15
+      mongodb:
+        image: mongo:7
         env:
-          POSTGRES_DB: seminar_hall_booking_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          MONGO_INITDB_DATABASE: seminar_hall_booking_test
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5432:5432
+          - 27017:27017
 
       redis:
         image: redis:7
@@ -114,7 +110,8 @@ jobs:
         npm run db:seed || echo "⚠️  Seeding completed with warnings"
         echo "✅ Database setup completed"
       env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/seminar_hall_booking_test
+        MONGODB_URI: mongodb://localhost:27017/seminar_hall_booking_test
+        MONGODB_DB: seminar_hall_booking_test
         CI: true
 
     - name: Build backend application
@@ -175,7 +172,8 @@ jobs:
           exit 1
         fi
       env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/seminar_hall_booking_test
+        MONGODB_URI: mongodb://localhost:27017/seminar_hall_booking_test
+        MONGODB_DB: seminar_hall_booking_test
         REDIS_URL: redis://localhost:6379
         JWT_SECRET: test-secret-key
         NODE_ENV: production
