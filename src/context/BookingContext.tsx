@@ -105,18 +105,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   // Load bookings when component mounts and when authentication changes
   useEffect(() => {
     const checkAndLoadBookings = () => {
-      // Only load if we're in browser and have a token
-      if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('token');
-        const user = localStorage.getItem('user');
-
-        if (token && user) {
-          console.log('📅 Loading bookings with valid authentication');
-          loadBookings();
-        } else {
-          console.log('📅 No valid authentication, skipping bookings load');
-          setLoading(false); // Stop loading if no token
-        }
+      // Only load if we're in browser and have a valid token
+      if (api.hasValidToken()) {
+        console.log('📅 Loading bookings with valid authentication');
+        loadBookings();
+      } else {
+        console.log('📅 No valid authentication, skipping bookings load');
+        setLoading(false); // Stop loading if no token
       }
     };
 

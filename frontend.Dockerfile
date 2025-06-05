@@ -24,25 +24,15 @@ ENV JWT_SECRET=dummy-secret
 ENV JWT_EXPIRES_IN=7d
 ENV NEXTAUTH_SECRET=dummy-secret
 
-# Build the Next.js application
-RUN npm run build
-
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
 # Create public directory
 RUN mkdir -p ./public
 
-# Switch to non-root user (much faster than chown)
-USER nextjs
-
-# Expose port
-EXPOSE 3000
+# Expose port 9002 for development
+EXPOSE 9002
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000 || exit 1
+  CMD curl -f http://localhost:9002 || exit 1
 
-# Start the application
-CMD ["npm", "start"]
+# Start the development server on port 9002
+CMD ["npm", "run", "dev"]

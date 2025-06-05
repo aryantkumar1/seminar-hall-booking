@@ -10,7 +10,7 @@ class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   }
 
   private async request<T>(
@@ -28,7 +28,10 @@ class ApiClient {
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('token');
         if (token) {
+          console.log('🔑 Using token for request:', token.substring(0, 20) + '...');
           defaultHeaders.Authorization = `Bearer ${token}`;
+        } else {
+          console.log('🔑 No token found in localStorage');
         }
       }
 
@@ -45,6 +48,16 @@ class ApiClient {
 
       if (!response.ok) {
         console.error(`API Error [${response.status}]:`, data.error || response.statusText);
+
+        // If we get a 401 (Unauthorized), clear the invalid token
+        if (response.status === 401 && typeof window !== 'undefined') {
+          console.log('🔑 Clearing invalid token due to 401 error');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          // Dispatch a custom event to notify other components
+          window.dispatchEvent(new CustomEvent('authChanged'));
+        }
+
         return {
           error: data.error || `HTTP error! status: ${response.status}`,
         };
@@ -106,6 +119,23 @@ class ApiClient {
     const result = this.request('/auth/me');
     console.log('🔍 API: getCurrentUser result:', result);
     return result;
+  }
+
+  // Helper method to check if we have a valid token
+  hasValidToken(): boolean {
+    if (typeof window === 'undefined') return false;
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+  }
+
+  // Helper method to clear all auth data
+  clearAuthData(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new CustomEvent('authChanged'));
+    }
   }
 
   // Hall methods
