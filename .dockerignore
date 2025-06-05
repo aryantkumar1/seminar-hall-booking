@@ -4,6 +4,7 @@ backend/node_modules
 .next
 .git
 coverage
+backend/coverage
 *.log
 .env.local
 .env.development.local
