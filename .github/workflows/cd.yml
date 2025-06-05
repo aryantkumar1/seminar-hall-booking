@@ -117,9 +117,9 @@ jobs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/seminar_hall_booking_test
         CI: true
 
-    - name: Start backend application
+    - name: Build backend application
       run: |
-        echo "🔧 Starting backend application..."
+        echo "🔧 Building backend application..."
         cd backend
 
         # Check if backend dependencies are installed
@@ -128,8 +128,38 @@ jobs:
           npm ci
         fi
 
-        # Start backend with logging
+        # Build backend TypeScript
+        echo "🏗️  Compiling TypeScript..."
+        npm run build
+
+        # Install tsc-alias globally for path alias resolution
+        echo "🔧 Installing tsc-alias..."
+        npm install -g tsc-alias
+
+        # Resolve TypeScript path aliases in compiled JS
+        echo "🔗 Resolving path aliases..."
+        tsc-alias -p tsconfig.json
+
+        # Verify build output
+        if [ ! -d "dist" ]; then
+          echo "❌ Backend build failed - no dist directory"
+          exit 1
+        fi
+
+        # Check if main server file exists
+        if [ ! -f "dist/server.js" ]; then
+          echo "❌ Backend build failed - no server.js file"
+          exit 1
+        fi
+
+        echo "✅ Backend build completed successfully"
+
+    - name: Start backend application
+      run: |
         echo "🚀 Starting backend on port 5000..."
+        cd backend
+
+        # Start backend with logging
         npm start > backend.log 2>&1 &
         BACKEND_PID=$!
         echo "Backend PID: $BACKEND_PID"
