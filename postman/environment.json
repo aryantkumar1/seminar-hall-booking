@@ -1,0 +1,16 @@
+{
+  "id": "seminar-hall-env",
+  "name": "Seminar Hall Environment",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://seminar-hall-backend:5000",
+      "enabled": true
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "enabled": true
+    }
+  ]
+}

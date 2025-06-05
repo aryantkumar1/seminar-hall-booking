@@ -9,8 +9,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY backend/package*.json ./backend/
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install dependencies (dev deps needed for build)
+RUN npm ci && npm cache clean --force
 RUN cd backend && npm ci --only=production && npm cache clean --force
 
 # Stage 2: Builder
@@ -54,17 +54,19 @@ ENV NEXT_TELEMETRY_DISABLED 1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built application
-COPY --from=builder /app/public ./public
+# Copy built application (handle optional directories)
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/backend ./backend
 
+# Create public directory and copy if exists
+RUN mkdir -p ./public
+COPY --from=builder /app/public ./public
+
 # Copy backend dependencies
 COPY --from=deps /app/backend/node_modules ./backend/node_modules
 
-# Change ownership to nextjs user
-RUN chown -R nextjs:nodejs /app
+# Switch to non-root user (much faster than chown)
 USER nextjs
 
 # Expose ports

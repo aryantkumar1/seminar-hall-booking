@@ -53,11 +53,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+    # volumes:
+      # - ./backend:/app  # Commented out - this overrides the built dist folder
+      # - /app/node_modules
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -66,7 +66,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: frontend.Dockerfile
     container_name: seminar-hall-frontend
     environment:
       NODE_ENV: development
@@ -76,15 +76,46 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.next
+    # volumes:
+      # - .:/app  # Commented out - this overrides the built application
+      # - /app/node_modules
+      # - /app/.next
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Newman (Postman CLI) for API Testing
+  newman:
+    image: postman/newman:latest
+    container_name: seminar-hall-newman
+    volumes:
+      - ./postman:/etc/newman
+    command: >
+      run /etc/newman/seminar-hall-api.postman_collection.json
+      --environment /etc/newman/environment.json
+      --reporters cli,json
+      --reporter-json-export /etc/newman/results.json
+    depends_on:
+      backend:
+        condition: service_healthy
+    profiles:
+      - testing
+
+  # Terraform for Infrastructure Management
+  terraform:
+    image: hashicorp/terraform:latest
+    container_name: seminar-hall-terraform
+    working_dir: /workspace
+    volumes:
+      - ./terraform:/workspace
+      - ~/.aws:/root/.aws:ro  # AWS credentials (read-only)
+    environment:
+      - TF_IN_AUTOMATION=true
+    command: ["terraform", "version"]
+    profiles:
+      - infrastructure
 
 volumes:
   postgres_data:

@@ -183,3 +183,104 @@ jobs:
       env:
         DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
         JWT_SECRET: test-secret-key
+
+  # API Testing with Postman/Newman
+  api-tests:
+    runs-on: ubuntu-latest
+    name: API Tests (Postman/Newman)
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd backend && npm ci
+
+    - name: Build backend
+      run: cd backend && npm run build
+
+    - name: Start backend server
+      run: |
+        cd backend && npm start &
+        echo $! > backend.pid
+      env:
+        NODE_ENV: test
+        DATABASE_URL: postgresql://${{ env.POSTGRES_USER }}:${{ env.POSTGRES_PASSWORD }}@localhost:5432/${{ env.POSTGRES_DB }}
+        REDIS_URL: redis://localhost:6379
+        JWT_SECRET: test-secret-key-for-api-tests
+        JWT_EXPIRES_IN: 7d
+        PORT: 5000
+
+    - name: Wait for backend to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:5000/health; do sleep 2; done'
+
+    - name: Run Postman API Tests
+      run: |
+        # Install Newman
+        npm install -g newman
+
+        # Run Postman collection
+        newman run postman/seminar-hall-api.postman_collection.json \
+          --environment postman/environment.json \
+          --reporters cli,json,junit \
+          --reporter-json-export newman-results.json \
+          --reporter-junit-export newman-results.xml
+
+    - name: Upload Newman Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: newman-results
+        path: |
+          newman-results.json
+          newman-results.xml
+
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: API Tests (Newman)
+        path: newman-results.xml
+        reporter: java-junit
+
+    - name: Stop backend server
+      if: always()
+      run: |
+        if [ -f backend.pid ]; then
+          kill $(cat backend.pid) || true
+          rm backend.pid
+        fi

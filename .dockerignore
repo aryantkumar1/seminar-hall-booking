@@ -1,18 +1,19 @@
-# Only exclude the most essential items for Docker build optimization
+# Exclude large/unnecessary files for faster Docker builds
 node_modules
-backend/node_modules
 .next
 .git
 coverage
 backend/coverage
 *.log
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 .DS_Store
 Thumbs.db
-.vscode
-.idea
-*.swp
-*.swo
+README.md
+docs/
+tests/
+*.md
+.vscode/
+.idea/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
