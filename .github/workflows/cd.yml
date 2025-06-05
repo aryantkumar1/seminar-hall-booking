@@ -63,11 +63,6 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Set Docker Hub variables
-      run: |
-        echo "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" >> $GITHUB_ENV
-        echo "DOCKER_REPO=${{ secrets.DOCKER_USERNAME }}/seminar-hall-booking" >> $GITHUB_ENV
-
     - name: Build and push Backend to Docker Hub
       uses: docker/build-push-action@v5
       with:
@@ -75,8 +70,8 @@ jobs:
         file: ./backend/Dockerfile
         push: true
         tags: |
-          ${{ env.DOCKER_REPO }}:backend-latest
-          ${{ env.DOCKER_REPO }}:backend-${{ github.sha }}
+          aryantkumar/seminar-hall-booking:backend-latest
+          aryantkumar/seminar-hall-booking:backend-${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -87,8 +82,8 @@ jobs:
         file: ./frontend.Dockerfile
         push: true
         tags: |
-          ${{ env.DOCKER_REPO }}:frontend-latest
-          ${{ env.DOCKER_REPO }}:frontend-${{ github.sha }}
+          aryantkumar/seminar-hall-booking:frontend-latest
+          aryantkumar/seminar-hall-booking:frontend-${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
