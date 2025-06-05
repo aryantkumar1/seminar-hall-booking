@@ -136,7 +136,7 @@ jobs:
           --reporter-htmlextra-darkTheme
 
     - name: Upload Newman results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: newman-results
@@ -236,7 +236,7 @@ jobs:
           --reporter-htmlextra-export newman-results/production-report.html
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: production-test-results
