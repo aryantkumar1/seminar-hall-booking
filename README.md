@@ -1,4 +1,4 @@
-# Seminar Hall Booking System
+# Seminar Hall Booking System 🏛️
 
 A comprehensive web application for managing seminar hall bookings with real-time availability, user authentication, and administrative controls.
 
