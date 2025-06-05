@@ -117,27 +117,113 @@ jobs:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/seminar_hall_booking_test
         CI: true
 
-    - name: Start application
+    - name: Start backend application
       run: |
-        cd backend && npm start &
-        npm run dev &
-        sleep 30
+        echo "🔧 Starting backend application..."
+        cd backend
+
+        # Check if backend dependencies are installed
+        if [ ! -d "node_modules" ]; then
+          echo "📦 Installing backend dependencies..."
+          npm ci
+        fi
+
+        # Start backend with logging
+        echo "🚀 Starting backend on port 5000..."
+        npm start > backend.log 2>&1 &
+        BACKEND_PID=$!
+        echo "Backend PID: $BACKEND_PID"
+
+        # Wait a bit and check if it's running
+        sleep 10
+        if kill -0 $BACKEND_PID 2>/dev/null; then
+          echo "✅ Backend is running (PID: $BACKEND_PID)"
+        else
+          echo "❌ Backend failed to start"
+          echo "Backend logs:"
+          cat backend.log
+          exit 1
+        fi
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/seminar_hall_booking_test
         REDIS_URL: redis://localhost:6379
         JWT_SECRET: test-secret-key
-        NODE_ENV: test
+        NODE_ENV: production
+        PORT: 5000
+
+    - name: Start frontend application
+      run: |
+        echo "🔧 Starting frontend application..."
+
+        # Check if frontend dependencies are installed
+        if [ ! -d "node_modules" ]; then
+          echo "📦 Installing frontend dependencies..."
+          npm ci
+        fi
+
+        # Build and start frontend
+        echo "🏗️  Building frontend..."
+        npm run build
+
+        echo "🚀 Starting frontend on port 3000..."
+        npm start > frontend.log 2>&1 &
+        FRONTEND_PID=$!
+        echo "Frontend PID: $FRONTEND_PID"
+
+        # Wait a bit and check if it's running
+        sleep 10
+        if kill -0 $FRONTEND_PID 2>/dev/null; then
+          echo "✅ Frontend is running (PID: $FRONTEND_PID)"
+        else
+          echo "❌ Frontend failed to start"
+          echo "Frontend logs:"
+          cat frontend.log
+          exit 1
+        fi
+      env:
+        NODE_ENV: production
+        NEXT_PUBLIC_API_URL: http://localhost:5000
+        PORT: 3000
 
     - name: Install Newman
       run: npm install -g newman newman-reporter-htmlextra
+
+    - name: Wait for services to be ready
+      run: |
+        echo "⏳ Waiting for backend to be ready..."
+        for i in {1..30}; do
+          if curl -f http://localhost:5000/health > /dev/null 2>&1; then
+            echo "✅ Backend is healthy"
+            break
+          fi
+          echo "⏳ Waiting for backend... ($i/30)"
+          sleep 2
+        done
+
+        # Test backend health
+        echo "🔍 Testing backend health endpoint..."
+        curl -v http://localhost:5000/health || echo "❌ Backend health check failed"
+
+        echo "⏳ Waiting for frontend to be ready..."
+        for i in {1..30}; do
+          if curl -f http://localhost:3000 > /dev/null 2>&1; then
+            echo "✅ Frontend is healthy"
+            break
+          fi
+          echo "⏳ Waiting for frontend... ($i/30)"
+          sleep 2
+        done
+
+        # Test frontend health
+        echo "🔍 Testing frontend endpoint..."
+        curl -v http://localhost:3000 || echo "❌ Frontend health check failed"
+
+        echo "✅ Services health check completed"
 
     - name: Run Postman tests
       run: |
         # Create results directory
         mkdir -p newman-results
-
-        # Wait for application to be ready
-        timeout 60 bash -c 'until curl -f http://localhost:3000/health; do sleep 2; done' || echo "⚠️  Health check timeout"
 
         # Run Postman collection with error handling
         newman run postman/seminar-hall-api.postman_collection.json \
