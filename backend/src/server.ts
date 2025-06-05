@@ -73,6 +73,33 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Simple metrics endpoint for Prometheus
+app.get('/metrics', (req, res) => {
+  const uptime = process.uptime();
+  const memoryUsage = process.memoryUsage();
+
+  // Simple Prometheus format metrics
+  const metrics = `
+# HELP nodejs_process_uptime_seconds Process uptime in seconds
+# TYPE nodejs_process_uptime_seconds gauge
+nodejs_process_uptime_seconds ${uptime}
+
+# HELP nodejs_memory_usage_bytes Memory usage in bytes
+# TYPE nodejs_memory_usage_bytes gauge
+nodejs_memory_usage_bytes{type="rss"} ${memoryUsage.rss}
+nodejs_memory_usage_bytes{type="heapTotal"} ${memoryUsage.heapTotal}
+nodejs_memory_usage_bytes{type="heapUsed"} ${memoryUsage.heapUsed}
+nodejs_memory_usage_bytes{type="external"} ${memoryUsage.external}
+
+# HELP seminar_hall_api_up API availability
+# TYPE seminar_hall_api_up gauge
+seminar_hall_api_up 1
+`.trim();
+
+  res.set('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+  res.send(metrics);
+});
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/halls', hallRoutes);
