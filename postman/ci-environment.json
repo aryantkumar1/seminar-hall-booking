@@ -1,6 +1,6 @@
 {
-  "id": "seminar-hall-env",
-  "name": "Seminar Hall Environment",
+  "id": "seminar-hall-ci-env",
+  "name": "Seminar Hall CI Environment",
   "values": [
     {
       "key": "baseUrl",

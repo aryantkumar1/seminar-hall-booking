@@ -21,6 +21,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/backend/node_modules ./backend/node_modules
 
+# Create public directory first
+RUN mkdir -p public
+
 # Copy source code
 COPY . .
 
@@ -59,9 +62,8 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/backend ./backend
 
-# Create public directory and copy if exists
+# Create public directory
 RUN mkdir -p ./public
-COPY --from=builder /app/public ./public
 
 # Copy backend dependencies
 COPY --from=deps /app/backend/node_modules ./backend/node_modules
@@ -74,7 +76,7 @@ EXPOSE 3000 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+  CMD curl -f http://localhost:5000/health || exit 1
 
 # Start both frontend and backend
 CMD ["sh", "-c", "cd backend && npm start & npm start"]
