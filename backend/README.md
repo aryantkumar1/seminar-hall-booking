@@ -186,3 +186,7 @@ The API can be tested using tools like:
 5. Use PM2 or similar for process management
 6. Set up reverse proxy (nginx)
 7. Enable HTTPS
+
+
+
+##Commit
