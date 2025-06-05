@@ -212,6 +212,11 @@ jobs:
         NODE_ENV: production
         NEXT_PUBLIC_API_URL: http://localhost:5000
         PORT: 3000
+        # Add database env vars for API routes during build
+        MONGODB_URI: mongodb://localhost:27017/seminar_hall_booking_test
+        MONGODB_DB: seminar_hall_booking_test
+        JWT_SECRET: test-secret-key
+        REDIS_URL: redis://localhost:6379
 
     - name: Install Newman
       run: npm install -g newman newman-reporter-htmlextra
